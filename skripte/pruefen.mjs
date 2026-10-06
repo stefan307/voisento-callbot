@@ -62,7 +62,7 @@ const meta = existsSync(agentKonfigPfad('inbound')) ? JSON.parse(readFileSync(ag
 if (elOk && meta.phone_number) {
   const nummern = await el('/v1/convai/phone-numbers');
   const n = nummern.find(x => x.phone_number === meta.phone_number);
-  if (!n) fehlt(`Nummer ${meta.phone_number} ist nicht in ElevenLabs importiert: node skripte/nummer.mjs importieren`);
+  if (!n) fehlt(`Nummer ${meta.phone_number} ist nicht in ElevenLabs importiert: in der ElevenLabs-Oberfläche importieren (Twilio, Region IE1), dann node skripte/konfig.mjs --ueberschreiben …`);
   else {
     if (n.phone_number_id !== meta.phone_number_id) kaputt(`phone_number_id in agent.json passt nicht, richtig wäre ${n.phone_number_id}`);
     else ok(`Nummer ${meta.phone_number} in ElevenLabs (${n.phone_number_id})`);

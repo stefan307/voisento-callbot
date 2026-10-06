@@ -15,7 +15,7 @@ Stand prüfen jederzeit mit `node skripte/pruefen.mjs`.
 | `node skripte/agent.mjs vergleich\|holen\|senden <name>` | Prompt Repo ↔ ElevenLabs abgleichen |
 | `node skripte/konfig.mjs --name … --nummer +49… --uebergabe +49…` | lokale Agent-Einstellungen anlegen |
 | `node skripte/pruefen.mjs` | Einrichtung prüfen (Schlüssel, Agenten, Nummer, Profil), ändert nichts |
-| `node skripte/nummer.mjs importieren\|zuordnen` | Twilio-Nummer in ElevenLabs bringen bzw. dem Inbound-Agenten zuordnen |
+| `node skripte/nummer.mjs zuordnen` | Twilio-Nummer dem Inbound-Agenten zuordnen |
 | `node skripte/anlegen.mjs inbound\|outbound` | Agent einmalig in ElevenLabs anlegen (Werkzeuge, Datenerfassung, Stimme) |
 
 ## Stand und offene Punkte

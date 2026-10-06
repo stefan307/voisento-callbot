@@ -19,7 +19,7 @@ if (!opt.name || !e164(opt.nummer) || !e164(opt.uebergabe)) {
     const { agents } = await el('/v1/convai/agents?page_size=100');
     const nummern = await el('/v1/convai/phone-numbers');
     const nr = nummern.find(n => n.phone_number === opt.nummer);
-    console.log(nr ? `Nummer gefunden: ${nr.phone_number_id}` : 'Nummer noch nicht in ElevenLabs: später node skripte/nummer.mjs importieren');
+    console.log(nr ? `Nummer gefunden: ${nr.phone_number_id}` : 'Nummer noch nicht in ElevenLabs: erst in der ElevenLabs-Oberfläche importieren (Twilio, Region IE1), dann dieses Skript nochmal mit --ueberschreiben');
     for (const [name, agentName] of [['inbound', opt.in], ['outbound', opt.out]]) {
       const pfad = agentKonfigPfad(name);
       if (existsSync(pfad) && !opt.ueberschreiben) { console.log(`${name}: agent.json gibt es schon, unverändert (--ueberschreiben zum Ersetzen)`); continue; }

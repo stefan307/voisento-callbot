@@ -41,7 +41,6 @@ Frag den Menschen:
    - **TWILIO_ACCOUNT_SID**: die Konto-SID, beginnt mit `AC`.
    - **TWILIO_KEY_SID / TWILIO_KEY_SECRET**: ein Twilio-API-Schlüssel (SID beginnt mit `SK`), der **in der Region
      IE1 (Irland)** erstellt wurde. Ein Schlüssel aus US1 wird von IE1 abgelehnt (Fehler 20003).
-   - **TWILIO_AUTH_TOKEN_IE1**: nur nötig, wenn in Schritt 5 eine Nummer neu importiert wird.
 3. Warten, bis er „fertig“ sagt. Dann weiter mit Schritt 3.
 
 ## Schritt 3: Prüfen
@@ -79,10 +78,10 @@ In `CLAUDE.md`, `erfahrungen.md`, `agenten/inbound/prompt.md`, `agenten/inbound/
 
 ## Schritt 5: Nummer in ElevenLabs (nur Fall B)
 
-`node skripte/nummer.mjs importieren`
-- Ist die Nummer schon in ElevenLabs, wird nur die `phone_number_id` eingetragen.
-- Sonst braucht es `TWILIO_AUTH_TOKEN_IE1` in `.env`. Danach setzt ElevenLabs die Voice-URL der Nummer in Twilio selbst.
-- Hängt die Nummer schon an einem anderen Agenten, frag nach, bevor du sie umhängst. Dort laufen sonst Anrufe ins Leere.
+Zeigt `pruefen.mjs`, dass die Nummer nicht in ElevenLabs ist, importiert der Mensch sie einmalig in der
+ElevenLabs-Oberfläche: Telefonnummern, Twilio, Region IE1. Die Zugangsdaten trägt er dort selbst ein, nicht im Chat.
+Danach `node skripte/konfig.mjs --ueberschreiben …` (gleiche Angaben wie in Schritt 4), damit die ID eingetragen wird.
+Hängt die Nummer schon an einem anderen Agenten, frag nach, bevor du sie in Schritt 6 umhängst.
 
 ## Schritt 6: Agenten anlegen (nur Fall B)
 

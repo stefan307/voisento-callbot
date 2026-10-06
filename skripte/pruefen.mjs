@@ -3,7 +3,7 @@
 // Jede Zeile beginnt mit OK, FEHLT oder FEHLER, dahinter steht, was zu tun ist.
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { el, tw, twZugang, elKey, agentKonfigPfad, ROOT } from '../lib/api.mjs';
+import { el, tw, twZugang, elKey, agentKonfigPfad, EL_BASIS, TW_BASIS, ROOT } from '../lib/api.mjs';
 
 let fehler = 0;
 const ok = t => console.log('OK     ' + t);
@@ -18,11 +18,11 @@ let elOk = false;
 try {
   elKey();
   await el('/v1/convai/agents?page_size=1');
-  ok('ElevenLabs-Schlüssel gilt (EU-Residency, Agenten lesbar)');
+  ok(`ElevenLabs-Schlüssel gilt (${EL_BASIS})`);
   elOk = true;
 } catch (e) {
   if (/fehlt/.test(e.message)) fehlt('ELEVENLABS_API_KEY in .env');
-  else if (/data residency stack|global server/.test(e.message)) kaputt('ElevenLabs-Schlüssel gehört nicht zum EU-Stack');
+  else if (/data residency stack|global server/.test(e.message)) kaputt('ElevenLabs-Schlüssel gehört zu einem anderen Server: ELEVENLABS_API_BASE in .env setzen (z. B. EU-Residency)');
   else if (/invalid/i.test(e.message)) kaputt('ElevenLabs-Schlüssel ungültig oder gelöscht');
   else kaputt('ElevenLabs: ' + e.message.slice(0, 200));
 }
@@ -32,11 +32,11 @@ let twOk = false;
 try {
   twZugang();
   await tw('/IncomingPhoneNumbers.json?PageSize=1');
-  ok('Twilio-Schlüssel gilt (Region IE1)');
+  ok(`Twilio-Schlüssel gilt (${TW_BASIS})`);
   twOk = true;
 } catch (e) {
   if (/fehlt/.test(e.message)) fehlt('TWILIO_KEY_SID / TWILIO_KEY_SECRET in .env');
-  else if (/20003|401/.test(e.message)) kaputt('Twilio lehnt ab: Schlüssel falsch oder nicht für Region IE1 erstellt');
+  else if (/20003|401/.test(e.message)) kaputt('Twilio lehnt ab: Schlüssel falsch oder aus einer anderen Region als TWILIO_API_BASE');
   else kaputt('Twilio: ' + e.message.slice(0, 200));
 }
 
@@ -62,7 +62,7 @@ const meta = existsSync(agentKonfigPfad('inbound')) ? JSON.parse(readFileSync(ag
 if (elOk && meta.phone_number) {
   const nummern = await el('/v1/convai/phone-numbers');
   const n = nummern.find(x => x.phone_number === meta.phone_number);
-  if (!n) fehlt(`Nummer ${meta.phone_number} ist nicht in ElevenLabs importiert: in der ElevenLabs-Oberfläche importieren (Twilio, Region IE1), dann node skripte/konfig.mjs --ueberschreiben …`);
+  if (!n) fehlt(`Nummer ${meta.phone_number} ist nicht in ElevenLabs importiert: in der ElevenLabs-Oberfläche importieren (Twilio), dann node skripte/konfig.mjs --ueberschreiben …`);
   else {
     if (n.phone_number_id !== meta.phone_number_id) kaputt(`phone_number_id in agent.json passt nicht, richtig wäre ${n.phone_number_id}`);
     else ok(`Nummer ${meta.phone_number} in ElevenLabs (${n.phone_number_id})`);
@@ -73,9 +73,9 @@ if (elOk && meta.phone_number) {
 if (twOk && meta.phone_number) {
   const r = await tw('/IncomingPhoneNumbers.json?PhoneNumber=' + encodeURIComponent(meta.phone_number));
   const n = r.incoming_phone_numbers[0];
-  if (!n) kaputt(`Nummer ${meta.phone_number} nicht im Twilio-Konto (IE1). Steht sie in US1? Region in der Twilio-Konsole prüfen`);
-  else if (/elevenlabs\.io/.test(n.voice_url || '') && /eu\.residency/.test(n.voice_url)) ok('Twilio leitet Anrufe an ElevenLabs EU');
-  else kaputt(`Twilio Voice-URL zeigt auf ${n.voice_url || 'nichts'}, erwartet ElevenLabs EU. Nummer in ElevenLabs neu importieren`);
+  if (!n) kaputt(`Nummer ${meta.phone_number} nicht im Twilio-Konto unter ${TW_BASIS}. Andere Region? TWILIO_API_BASE prüfen`);
+  else if (/elevenlabs\.io/.test(n.voice_url || '')) ok('Twilio leitet Anrufe an ElevenLabs');
+  else kaputt(`Twilio Voice-URL zeigt auf ${n.voice_url || 'nichts'}, erwartet ElevenLabs. Nummer in ElevenLabs (neu) importieren`);
 }
 
 existsSync(join(ROOT, 'profil.local.md')) ? ok('profil.local.md vorhanden') : fehlt('profil.local.md (Vorlage: profil.local.example.md)');

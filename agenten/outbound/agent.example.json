@@ -5,5 +5,6 @@
   "im_auftrag_von": "Vorname",
   "phone_number": "+49…",
   "uebergabe_nummer": "+49…",
-  "llm": "gemini-3.5-flash"
+  "llm": "gemini-3.5-flash",
+  "voice_id": null
 }

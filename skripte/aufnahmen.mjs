@@ -1,4 +1,4 @@
-// Passive Mitschnitte aus Twilio (IE1) lesen und bei Bedarf transkribieren.
+// Passive Mitschnitte aus Twilio lesen und bei Bedarf transkribieren.
 //   node skripte/aufnahmen.mjs liste [--seit 2026-10-01] [--nummer 0151…] [--max 20]
 //   node skripte/aufnahmen.mjs transkript <RE…>
 // Die Audiodatei wird nur im Speicher gehalten und direkt an ElevenLabs-STT (EU) geschickt.

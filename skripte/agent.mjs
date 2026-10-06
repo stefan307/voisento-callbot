@@ -5,7 +5,7 @@
 // agenten/<name>/agent.json braucht dafür eine agent_id (Agent einmal in ElevenLabs anlegen).
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { el, argumente, agentKonfig, ROOT } from '../lib/api.mjs';
+import { el, argumente, agentKonfig, fuerAgent, ausAgent, ROOT } from '../lib/api.mjs';
 
 const { pos } = argumente();
 const [befehl, name] = pos;
@@ -16,9 +16,9 @@ const meta = agentKonfig(name);
 if (!meta.agent_id) { console.error(`agenten/${name}/agent.json: agent_id fehlt`); process.exit(1); }
 
 const lokal = () => ({
-  prompt: readFileSync(join(ordner, 'prompt.md'), 'utf8').replace(/\r\n/g, '\n').trim(),
-  erste: existsSync(join(ordner, 'erste-nachricht.txt'))
-    ? readFileSync(join(ordner, 'erste-nachricht.txt'), 'utf8').replace(/\r\n/g, '\n').trim() : '',
+  prompt: fuerAgent(name, readFileSync(join(ordner, 'prompt.md'), 'utf8').replace(/\r\n/g, '\n').trim(), meta),
+  erste: fuerAgent(name, existsSync(join(ordner, 'erste-nachricht.txt'))
+    ? readFileSync(join(ordner, 'erste-nachricht.txt'), 'utf8').replace(/\r\n/g, '\n').trim() : '', meta),
 });
 
 const live = async () => {
@@ -34,8 +34,8 @@ try {
     console.log(`Erste Nachricht: ${l.erste === r.erste ? 'gleich' : 'UNTERSCHIEDLICH'}`);
   } else if (befehl === 'holen') {
     const r = await live();
-    writeFileSync(join(ordner, 'prompt.md'), r.prompt + '\n');
-    writeFileSync(join(ordner, 'erste-nachricht.txt'), r.erste + '\n');
+    writeFileSync(join(ordner, 'prompt.md'), ausAgent(name, r.prompt, meta) + '\n');
+    writeFileSync(join(ordner, 'erste-nachricht.txt'), ausAgent(name, r.erste, meta) + '\n');
     // Restliche Konfiguration nur zum Nachlesen, wird nicht zurückgeschrieben.
     writeFileSync(join(ordner, 'live-konfig.json'), JSON.stringify({
       conversation_config: r.roh.conversation_config,

@@ -11,4 +11,4 @@ Claude übernimmt daraus nur die Felder in einen Auftrag, die der Anlass braucht
 - Telefon:
 
 Nur Stammdaten. Krankenkasse, Vertragsnummern, Kennzeichen und Ähnliches gehören nicht hierher,
-sondern werden pro Anruf bei Stefan abgefragt.
+sondern werden pro Anruf beim Nutzer abgefragt.

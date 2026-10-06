@@ -1,10 +1,11 @@
 // Legt einen Agenten aus agenten/<name>/ in ElevenLabs an und schreibt die agent_id zurück.
 //   node skripte/anlegen.mjs inbound|outbound
-// Stimme, Spracherkennung und Aussprache-Wörterbuch entsprechen Voisento-Bots.
+// Stimme (voice_id) und Name (im_auftrag_von) kommen aus agent.json. Beim Inbound-Agenten wird der Name fest
+// eingesetzt, weil ElevenLabs bei echten eingehenden Anrufen keine {{…}}-Variablen ersetzt.
 // Ist schon eine agent_id eingetragen, passiert nichts. Prompt-Änderungen danach mit agent.mjs senden.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { el, argumente, agentKonfig, agentKonfigPfad, ROOT } from '../lib/api.mjs';
+import { el, argumente, agentKonfig, agentKonfigPfad, fuerAgent, ROOT } from '../lib/api.mjs';
 
 const { pos } = argumente();
 const name = pos[0];
@@ -15,8 +16,9 @@ const metaPfad = agentKonfigPfad(name);
 const meta = agentKonfig(name);
 if (meta.agent_id) { console.log(`Schon angelegt: ${meta.agent_id}`); process.exit(0); }
 
-const prompt = readFileSync(join(ordner, 'prompt.md'), 'utf8').replace(/\r\n/g, '\n').trim();
-const erste = readFileSync(join(ordner, 'erste-nachricht.txt'), 'utf8').replace(/\r\n/g, '\n').trim();
+if (!meta.voice_id) { console.error(`agenten/${name}/agent.json: voice_id fehlt (Stimme aussuchen, siehe INSTALL.md)`); process.exit(1); }
+const prompt = fuerAgent(name, readFileSync(join(ordner, 'prompt.md'), 'utf8').replace(/\r\n/g, '\n').trim(), meta);
+const erste = fuerAgent(name, readFileSync(join(ordner, 'erste-nachricht.txt'), 'utf8').replace(/\r\n/g, '\n').trim(), meta);
 
 const system = (typ, beschreibung, params = {}, extra = {}) => ({
   type: 'system', name: typ, description: beschreibung,
@@ -68,23 +70,23 @@ const datenInbound = {
   firma: { type: 'string', description: 'Firma des Anrufers, falls genannt.' },
   rueckrufnummer: { type: 'string', description: 'Bestätigte Rückrufnummer im Format +49…' },
   anliegen: { type: 'string', description: 'Das Anliegen in ein bis zwei Sätzen.' },
-  gewuenschte_aktion: { type: 'string', description: 'Was Stefan tun soll: zurückrufen, etwas schicken, entscheiden …' },
+  gewuenschte_aktion: { type: 'string', description: `Was ${meta.im_auftrag_von} tun soll: zurückrufen, etwas schicken, entscheiden …` },
   frist: { type: 'string', description: 'Genannte Frist oder Dringlichkeit, sonst leer.' },
 };
 const datenOutbound = {
   ergebnis: { type: 'string', description: 'Ergebnis des Auftrags in einem Satz.' },
-  auftrag_erledigt: { type: 'boolean', description: 'Nur true, wenn das im Auftrag genannte Ziel vollständig erreicht wurde (z. B. Schadennummer erhalten, Termin bestätigt). Eine Übergabe an Stefan allein ist kein erledigter Auftrag.' },
+  auftrag_erledigt: { type: 'boolean', description: `Nur true, wenn das im Auftrag genannte Ziel vollständig erreicht wurde (z. B. Schadennummer erhalten, Termin bestätigt). Eine Übergabe an ${meta.im_auftrag_von} allein ist kein erledigter Auftrag.` },
   vorgangsnummer: { type: 'string', description: 'Nur eine Nummer, die das Gegenüber neu vergeben und genannt hat (Schaden-, Vorgangs- oder Buchungsnummer). Nie Nummern aus dem Auftrag wie Vertrags- oder Kundennummer. Sonst leer.' },
   termin: { type: 'string', description: 'Vereinbarter Termin als JJJJ-MM-TT HH:MM (Ortszeit Berlin), aus dem Gesprächsdatum errechnet, sonst leer.' },
   ansprechpartner: { type: 'string', description: 'Name und Durchwahl des Gesprächspartners.' },
-  uebergeben: { type: 'boolean', description: 'Nur true, wenn das Werkzeug transfer_to_number tatsächlich aufgerufen wurde. Ein Versprechen, dass Stefan sich meldet, ist keine Übergabe.' },
+  uebergeben: { type: 'boolean', description: `Nur true, wenn das Werkzeug transfer_to_number tatsächlich aufgerufen wurde. Ein Versprechen, dass ${meta.im_auftrag_von} sich meldet, ist keine Übergabe.` },
 };
 
 const body = {
   name: meta.name,
   tags: ['callbot', 'test'],
   conversation_config: {
-    asr: { quality: 'high', provider: 'scribe_realtime', user_input_audio_format: 'ulaw_8000', keywords: ['Voisento', 'Stefan'] },
+    asr: { quality: 'high', provider: 'scribe_realtime', user_input_audio_format: 'ulaw_8000', keywords: [meta.im_auftrag_von] },
     turn: {
       // Outbound wartet in Warteschleifen: länger still bleiben, nie wegen Stille auflegen.
       turn_timeout: name === 'outbound' ? 20 : 7,
@@ -92,10 +94,9 @@ const body = {
       mode: 'turn', turn_eagerness: 'normal', turn_model: 'turn_v3',
     },
     tts: {
-      model_id: 'eleven_v3_conversational', voice_id: 'zKHQdbB8oaQ7roNTiDTK',
+      model_id: meta.tts_model || 'eleven_v3_conversational', voice_id: meta.voice_id,
       agent_output_audio_format: 'ulaw_8000', optimize_streaming_latency: 3,
       stability: 0.5, speed: 1.0, similarity_boost: 0.8,
-      pronunciation_dictionary_locators: [{ pronunciation_dictionary_id: 'MEfhaZOfTF6G88qESWzR', version_id: null }],
     },
     conversation: { max_duration_seconds: name === 'outbound' ? 2400 : 600 },
     agent: {

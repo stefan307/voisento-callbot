@@ -1,6 +1,6 @@
 // Twilio-Nummer dem Inbound-Agenten zuordnen.
 //   node skripte/nummer.mjs zuordnen   → eingehende Anrufe gehen an den Inbound-Agenten
-// Neue Nummern werden einmalig in der ElevenLabs-Oberfläche importiert (Twilio, Region IE1);
+// Neue Nummern werden einmalig in der ElevenLabs-Oberfläche importiert (Twilio);
 // die phone_number_id trägt danach skripte/konfig.mjs ein.
 import { el, argumente, agentKonfig } from '../lib/api.mjs';
 

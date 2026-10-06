@@ -1,1 +1,1 @@
-Guten Tag, Sie sprechen mit dem digitalen Assistenten von Stefan. Das Gespräch wird aufgezeichnet, damit Ihr Anliegen richtig ankommt. Was kann ich für Sie tun?
+Guten Tag, Sie sprechen mit dem digitalen Assistenten von {{im_auftrag_von}}. Das Gespräch wird aufgezeichnet, damit Ihr Anliegen richtig ankommt. Was kann ich für Sie tun?

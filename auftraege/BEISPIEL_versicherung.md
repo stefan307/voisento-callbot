@@ -17,5 +17,5 @@ Diese Angaben darfst du herausgeben:
 
 Im Telefonmenü: Schaden melden, dann Kfz.
 
-Sobald ein Mitarbeiter die Daten aufgenommen hat und nach Details zum Hergang oder zur Werkstatt fragt, übergib an Stefan.
+Sobald ein Mitarbeiter die Daten aufgenommen hat und nach Details zum Hergang oder zur Werkstatt fragt, übergib.
 Falls keine Übergabe klappt: Schadennummer erfragen und zur Kontrolle wiederholen.

@@ -1,119 +1,120 @@
 # Installation – Anleitung für Claude
 
 Diese Datei ist für dich, Claude. Der Mensch sagt etwa: „Nimm das Repo und installier das.“
-Du gehst die Schritte **der Reihe nach** mit ihm durch. Nach jedem Schritt prüfst du, ob er geklappt hat,
-und gehst erst dann weiter. Am Ende muss `node skripte/pruefen.mjs` überall `OK` zeigen.
+Du richtest die beiden Telefonbots in **seinen eigenen Konten** ein (ElevenLabs, Twilio, Kalender) und gehst
+die Schritte **der Reihe nach** mit ihm durch. Nach jedem Schritt prüfst du, ob er geklappt hat, und gehst erst dann
+weiter. Am Ende muss `node skripte/pruefen.mjs` überall `OK` zeigen.
 
 ## Regeln für die Installation
 
 - **Schlüssel und Tokens laufen nie durch den Chat.** Du legst `.env` an, der Mensch trägt die Werte selbst ein.
   Schreibt er dir trotzdem einen Schlüssel in den Chat, sag ihm, dass er ihn nach der Einrichtung neu erzeugen sollte.
 - Gib Schlüssel nie aus, auch nicht teilweise. Prüfe sie nur über `pruefen.mjs`.
+- Eigene Daten (Name, Nummern, IDs, Profil) gehören nur in die lokalen Dateien `.env`, `agenten/*/agent.json`
+  und `profil.local.md`. Diese Dateien werden nie committet.
 - Software installierst du nur nach Rückfrage.
-- Menüpfade in fremden Oberflächen (ElevenLabs, Twilio, Google) schreibst du nicht aus dem Gedächtnis vor. Die ändern sich.
-  Beschreib, was gesucht wird. Wenn der Mensch es nicht findet, schau mit ihm gemeinsam im Browser nach.
+- Menüpfade in fremden Oberflächen (ElevenLabs, Twilio, Google) schreibst du nicht aus dem Gedächtnis vor. Sie ändern sich.
+  Beschreib, was gesucht wird, und schau bei Bedarf gemeinsam im Browser nach.
 - Ein Testanruf geht nach außen und kostet Geld: nur nach ausdrücklichem „los“.
 - Frag gebündelt: lieber eine Nachricht mit drei Fragen als drei Nachrichten.
 
-## Schritt 0: Welcher Fall liegt vor?
+## Schritt 1: Erst nachsehen, was schon da ist
 
-Frag den Menschen:
+Bevor du fragst, prüfe selbst:
+- `node --version` (nötig: 22 oder neuer, empfohlen 24) und `git --version`.
+- Ob das Repo schon lokal liegt und ob es `.env`, `agenten/*/agent.json` oder `profil.local.md` schon gibt.
+  Gibt es sie, `node skripte/pruefen.mjs` ausführen und nur die offenen Punkte angehen.
+- Welche Werkzeuge du in dieser Sitzung hast: einen **Kalender-Connector** (z. B. Google Calendar) und einen
+  **ElevenLabs-Connector**. Teste den Kalender mit einer harmlosen Leseabfrage (freie Zeiten der nächsten Woche).
 
-- **A) Bestehende Agenten weiterverwenden.** Die Bots laufen schon in ElevenLabs und sollen auf diesem Rechner
-  weiter gesteuert werden. Dann: Schritte 1 bis 4 (in Schritt 4 die Namen der bestehenden Agenten mitgeben), danach 7 bis 9.
-- **B) Neue Einrichtung.** Eigene Bot-Nummer, eigener Name, eigene Übergabenummer, eventuell anderes ElevenLabs- oder
-  Twilio-Konto. Dann alle Schritte.
+Fasse dem Menschen in wenigen Zeilen zusammen, was vorhanden ist und was fehlt.
+Fehlt Node oder Git, frag, ob du es installieren sollst (unter Windows z. B. `winget install OpenJS.NodeJS.LTS`).
+Es gibt keine npm-Abhängigkeiten.
 
-## Schritt 1: Voraussetzungen
+## Schritt 2: Konten klären
 
-- `node --version` muss 22 oder neuer sein, empfohlen ist 24. Sonst nach Rückfrage installieren,
-  unter Windows z. B. `winget install OpenJS.NodeJS.LTS`.
-- `git --version` muss vorhanden sein.
-- Liegt das Repo noch nicht lokal vor: klonen, z. B. `gh repo clone stefan307/voisento-callbot`, und in den Ordner wechseln.
-- Es gibt keine npm-Abhängigkeiten. `npm install` ist nicht nötig.
+Der Mensch braucht:
+- ein **ElevenLabs-Konto** mit Zugang zu ElevenLabs Agents;
+- ein **Twilio-Konto** mit einer Telefonnummer, die Anrufe annehmen und tätigen kann.
 
-## Schritt 2: Schlüssel in `.env`
+Frag, ob beides schon existiert. Wenn nicht: Er legt es selbst an, du legst keine Konten an.
+Frag außerdem, ob sein ElevenLabs-Konto auf einem **Data-Residency-Server** liegt (z. B. EU) und in welcher
+**Twilio-Region** die Nummer liegt (Standard US1, sonst z. B. Irland). Weiß er es nicht, findet `pruefen.mjs` es in
+Schritt 4 heraus: die Fehlermeldung nennt dann den falschen Server.
 
-1. `.env.example` nach `.env` kopieren. `.env` steht in `.gitignore`.
-2. Dem Menschen sagen, welche Werte er eintragen muss und woher sie kommen:
-   - **ELEVENLABS_API_KEY**: ein API-Schlüssel aus dem ElevenLabs-Konto. Das Voisento-Konto liegt auf dem
-     **EU-Residency-Stack**. Rechte: ElevenLabs Agents lesen und schreiben, Speech to Text.
-   - **TWILIO_ACCOUNT_SID**: die Konto-SID, beginnt mit `AC`.
-   - **TWILIO_KEY_SID / TWILIO_KEY_SECRET**: ein Twilio-API-Schlüssel (SID beginnt mit `SK`), der **in der Region
-     IE1 (Irland)** erstellt wurde. Ein Schlüssel aus US1 wird von IE1 abgelehnt (Fehler 20003).
-3. Warten, bis er „fertig“ sagt. Dann weiter mit Schritt 3.
+## Schritt 3: Schlüssel in `.env`
 
-## Schritt 3: Prüfen
+1. `.env.example` nach `.env` kopieren.
+2. Dem Menschen sagen, welche Werte er selbst eintragen muss:
+   - **ELEVENLABS_API_KEY**: API-Schlüssel mit den Rechten *ElevenLabs Agents* (lesen und schreiben), *Voices* (lesen)
+     und *Speech to Text*.
+   - **ELEVENLABS_API_BASE**: nur bei Data-Residency-Konten, z. B. `https://api.eu.residency.elevenlabs.io`.
+   - **TWILIO_ACCOUNT_SID**: Konto-SID, beginnt mit `AC`.
+   - **TWILIO_KEY_SID / TWILIO_KEY_SECRET**: ein Twilio-API-Schlüssel (SID beginnt mit `SK`) aus derselben Region wie die Nummer.
+   - **TWILIO_API_BASE**: nur außerhalb von US1, z. B. `https://api.dublin.ie1.twilio.com`.
+3. Warten, bis er „fertig“ sagt.
 
-`node skripte/pruefen.mjs` ausführen. Die ersten Zeilen (Node, ElevenLabs, Twilio) müssen `OK` sein.
-Typische Fehler:
+## Schritt 4: Schlüssel prüfen
+
+`node skripte/pruefen.mjs`. Die Zeilen für Node, ElevenLabs und Twilio müssen `OK` sein. Typische Fehler:
 
 | Meldung | Bedeutung |
 |---|---|
-| gehört nicht zum EU-Stack | Schlüssel stammt aus einem globalen Konto; `lib/api.mjs` nutzt `api.eu.residency.elevenlabs.io` |
+| gehört zu einem anderen Server | `ELEVENLABS_API_BASE` fehlt oder ist falsch (Data-Residency-Konto) |
 | ungültig oder gelöscht | Schlüssel falsch kopiert oder widerrufen |
-| fehlende Berechtigung | Schlüssel stimmt, aber ein Recht fehlt (z. B. Agents schreiben) |
-| Twilio lehnt ab | Schlüssel nicht in IE1 erstellt oder Secret falsch |
+| fehlende Berechtigung / missing permission | Schlüssel stimmt, ein Recht aus Schritt 3 fehlt |
+| Twilio lehnt ab | Schlüssel aus einer anderen Region als `TWILIO_API_BASE`, oder Secret falsch |
 
-Fall A: Zeigen auch Agenten und Nummer `OK`, weiter mit Schritt 7.
+Die Punkte zu Agenten, Nummer und Profil sind jetzt noch offen, das ist richtig.
 
-## Schritt 4: Wer, welche Nummern?
+## Schritt 5: Nummer in ElevenLabs
 
-Die eigenen Einstellungen (Name, Nummern, Agent-IDs) liegen nur lokal in `agenten/*/agent.json`, nicht im Repo.
+Die Twilio-Nummer muss einmalig in ElevenLabs importiert werden. Das macht der Mensch in der ElevenLabs-Oberfläche
+bei den Telefonnummern (Anbieter Twilio, passende Region). Die Twilio-Zugangsdaten trägt er dort selbst ein.
+Ist die Nummer schon importiert und an einen anderen Agenten gebunden, frag, ob sie für die Bots umgehängt werden darf.
+
+## Schritt 6: Name, Übergabe, Stimme
+
 Frag gebündelt:
-- Für wen telefoniert der Bot? Der **Vorname** steht in den Ansagen („digitaler Assistent von …“).
-- An welche Handynummer soll der Bot **übergeben**?
-- Welche **Twilio-Nummer** bekommt der Bot? Sie muss im Twilio-Konto in Region IE1 liegen.
-- Fall A: Wie heißen die bestehenden Agenten in ElevenLabs?
+- Für wen telefonieren die Bots? Der **Vorname** steht in den Ansagen („digitaler Assistent von …“).
+- An welche Nummer sollen die Bots **übergeben**? Meist das eigene Handy.
+- Welche **Stimme**? Zeig ihm Vorschläge mit `node skripte/konfig.mjs stimmen` (oder `--suche deutsch`).
+  Er kann sich die Stimmen in der ElevenLabs-Oberfläche anhören und auch eine eigene wählen.
 
 Dann:
 ```
-node skripte/konfig.mjs --name <Vorname> --nummer +49… --uebergabe +49… [--in <Inbound-Agent>] [--out <Outbound-Agent>]
+node skripte/konfig.mjs --name <Vorname> --nummer +49… --uebergabe +49… --stimme <voice_id>
 ```
-Mit `--in`/`--out` sucht das Skript die IDs der bestehenden Agenten, ohne bleiben sie leer und werden in Schritt 6 angelegt.
+Das schreibt `agenten/inbound/agent.json` und `agenten/outbound/agent.json` und findet die ID der importierten Nummer.
+Den Vornamen setzen die Skripte selbst in die Prompts ein. In den Dateien im Repo musst du nichts ersetzen.
 
-In `CLAUDE.md`, `erfahrungen.md`, `agenten/inbound/prompt.md`, `agenten/inbound/erste-nachricht.txt` und
-`skripte/anlegen.mjs` kommt der Vorname „Stefan“ wörtlich vor. Bei einer anderen Person durch deren Vornamen ersetzen.
-(Im Inbound-Prompt steht er fest, weil Variablen bei echten eingehenden Anrufen nicht ersetzt werden.)
-
-## Schritt 5: Nummer in ElevenLabs (nur Fall B)
-
-Zeigt `pruefen.mjs`, dass die Nummer nicht in ElevenLabs ist, importiert der Mensch sie einmalig in der
-ElevenLabs-Oberfläche: Telefonnummern, Twilio, Region IE1. Die Zugangsdaten trägt er dort selbst ein, nicht im Chat.
-Danach `node skripte/konfig.mjs --ueberschreiben …` (gleiche Angaben wie in Schritt 4), damit die ID eingetragen wird.
-Hängt die Nummer schon an einem anderen Agenten, frag nach, bevor du sie in Schritt 6 umhängst.
-
-## Schritt 6: Agenten anlegen (nur Fall B)
+## Schritt 7: Agenten anlegen
 
 ```
 node skripte/anlegen.mjs inbound
 node skripte/anlegen.mjs outbound
 node skripte/nummer.mjs zuordnen
 ```
+Danach `node skripte/agent.mjs vergleich inbound` und `vergleich outbound`: beide müssen „gleich“ zeigen.
 
-`anlegen.mjs` nutzt Stimme und Aussprache-Wörterbuch aus dem Voisento-Konto. In einem anderen ElevenLabs-Konto gibt es die
-nicht: dann `voice_id` und `pronunciation_dictionary_locators` in `skripte/anlegen.mjs` anpassen. Eine Stimme
-sucht ihr gemeinsam aus.
+## Schritt 8: Persönliche Stammdaten
 
-## Schritt 7: Persönliche Stammdaten
-
-`profil.local.example.md` nach `profil.local.md` kopieren und den Menschen bitten, die Datei selbst auszufüllen:
+`profil.local.example.md` nach `profil.local.md` kopieren und den Menschen bitten, sie selbst auszufüllen:
 Name, Geburtsdatum, Adresse, E-Mail, Telefon. Nur Stammdaten. Krankenkasse, Vertragsnummern usw. werden pro Anruf
-abgefragt und nie gespeichert (siehe `CLAUDE.md`).
+abgefragt und nie gespeichert (siehe `CLAUDE.md`). Die E-Mail ist auch die Kalender-Adresse für Terminaufträge.
 
-## Schritt 8: Google-Kalender
+## Schritt 9: Kalender
 
-Für den Termin-Ablauf braucht Claude Lesezugriff und Schreibzugriff auf den Kalender, über den Google-Kalender-Connector
-in Claude. Prüfen: freie Zeiten der nächsten Woche für die eigene Adresse abfragen (`suggest_time`).
-Fehlt der Connector, muss der Mensch ihn in den Claude-Einstellungen unter Connectors verbinden.
-Ohne Kalender funktioniert alles andere. Den Spielraum für Termine fragst du dann jeweils ab.
+Hast du in Schritt 1 einen Kalender-Connector gefunden und die Leseabfrage hat geklappt, ist nichts zu tun.
+Sonst: fragen, ob der Mensch einen Kalender verbinden möchte (in den Connector-Einstellungen von Claude).
+Ohne Kalender funktioniert alles andere. Den Spielraum für Termine fragst du dann bei jedem Auftrag ab.
 
-## Schritt 9: Abschluss und Test
+## Schritt 10: Abschluss und Test
 
 1. `node skripte/pruefen.mjs` zeigt überall `OK`.
 2. **Inbound**: Der Mensch ruft die Bot-Nummer an und schildert ein Testanliegen. Danach
    `node skripte/gespraeche.mjs liste --agent inbound --max 1` und das Gespräch mit `zeige` öffnen.
 3. **Outbound**: Testauftrag nach dem Muster von `auftraege/BEISPIEL_versicherung.md` an eine **zweite Nummer des
-   Menschen**. Die Übergabe geht ans Handy, deshalb braucht es ein anderes Telefon, z. B. Festnetz. Zwei SIMs im selben
-   Gerät blockieren sich. Erst nach „los“ starten, dann mit `warte` aufs Ende warten und auswerten.
-4. Ergebnis zusammenfassen: was läuft, was fehlt. `agent.json`, `.env` und `profil.local.md` bleiben lokal und werden nie committet.
+   Menschen**. Die Übergabe geht an die Übergabenummer, deshalb braucht es ein anderes Telefon, z. B. Festnetz.
+   Zwei SIMs im selben Gerät blockieren sich. Erst nach „los“ starten, dann mit `warte` aufs Ende warten und auswerten.
+4. Ergebnis zusammenfassen: was läuft, was fehlt.

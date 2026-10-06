@@ -1,0 +1,7 @@
+.env
+node_modules/
+agenten/*/live-konfig.json
+profil.local.md
+auftraege/*
+!auftraege/BEISPIEL_*.md
+agenten/*/agent.json

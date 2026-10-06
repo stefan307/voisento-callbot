@@ -1,0 +1,12 @@
+{
+  "name": "voisento-callbot",
+  "private": true,
+  "type": "module",
+  "description": "Inbound- und Outbound-Telefonbot (ElevenLabs + Twilio), gesteuert durch Claude",
+  "scripts": {
+    "gespraeche": "node skripte/gespraeche.mjs",
+    "aufnahmen": "node skripte/aufnahmen.mjs",
+    "anruf": "node skripte/anruf.mjs",
+    "agent": "node skripte/agent.mjs"
+  }
+}

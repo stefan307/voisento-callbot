@@ -1,0 +1,9 @@
+{
+  "name": "Callbot_out",
+  "agent_id": null,
+  "phone_number_id": null,
+  "im_auftrag_von": "Vorname",
+  "phone_number": "+49…",
+  "uebergabe_nummer": "+49…",
+  "llm": "gemini-3.5-flash"
+}

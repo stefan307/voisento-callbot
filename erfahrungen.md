@@ -26,3 +26,6 @@ Nur Felder herausgeben, die der Anlass braucht.
 - **06.10.2026, Inbound (Test):** Anruf brach nach 0 Sekunden ab: „Missing required dynamic variables in first message“.
   Platzhalter-Standardwerte am Agenten gelten nicht bei echten eingehenden Anrufen, nur ausgehend liefert unser Skript sie mit.
   Im Inbound-Prompt und in der ersten Nachricht keine `{{…}}`-Variablen verwenden, Werte fest eintragen.
+- **06.10.2026, Anruf unter Freunden:** Eine Zusatzstimme mit der Beschreibung „Immer wenn X spricht“ hat der Bot im
+  ganzen Gespräch benutzt, obwohl der Auftrag sie nicht verlangte. Beschreibung von Zusatzstimmen immer als
+  „nicht benutzen, außer der Auftrag verlangt es“ formulieren. Im Prompt steht die Regel jetzt auch.

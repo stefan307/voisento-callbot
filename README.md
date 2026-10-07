@@ -17,6 +17,7 @@ Stand prüfen jederzeit mit `node skripte/pruefen.mjs`.
 | `node skripte/konfig.mjs stimmen` / `--name … --nummer +49… --uebergabe +49… --stimme <id>` | Stimme aussuchen, lokale Agent-Einstellungen anlegen |
 | `node skripte/pruefen.mjs` | Einrichtung prüfen (Schlüssel, Agenten, Nummer, Profil), ändert nichts |
 | `node skripte/nummer.mjs zuordnen` | Twilio-Nummer dem Inbound-Agenten zuordnen |
+| `node skripte/make.mjs vorschau\|einspielen\|holen\|nummer +49…` | Mitschneider-Szenario in Make einspielen, Nummer umstellen |
 | `node skripte/anlegen.mjs inbound\|outbound` | Agent einmalig in ElevenLabs anlegen (Werkzeuge, Datenerfassung, Stimme) |
 
 ## Stand und offene Punkte
@@ -28,8 +29,7 @@ Eigene IDs, Nummern und Schlüssel stehen nur lokal (`.env`, `agenten/*/agent.js
 Offen:
 1. Eingehender Bot im Praxistest. Bei echten eingehenden Anrufen keine `{{…}}`-Variablen in Prompt und Begrüßung
    verwenden, siehe `erfahrungen.md`.
-2. Stilles Mitschneiden von Handy-Telefonaten (Mitschneide-Nummer per Konferenz zuschalten, Anrufer-Erkennung,
-   Weiterleitung mit Aufnahme). `aufnahmen.mjs` für Transkripte steht schon.
+2. Mitschneider (Make): Vorlage und Einspielskript stehen, noch nicht eingespielt und ohne Nummer getestet.
 3. Echte Telefonmenüs und Warteschleifen testen. Tastentöne laufen bei Twilio im Ton mit, manche Menüs erkennen sie nicht.
 4. Anrufe aus Slack auslösen.
 5. Live-Kalenderabgleich während des Gesprächs (heute schaut Claude vor dem Anruf in den Kalender).

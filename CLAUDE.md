@@ -68,6 +68,16 @@ Rückfragen nur, wenn Nummer oder Anlass fehlen oder Daten herausgegeben werden 
    ob eingetragen, Auffälligkeiten im Gespräch. Kein Termin vereinbart: angebotene Alternativen nennen, nichts eintragen.
 8. Status im Kopf der Auftragsdatei auf `erledigt` oder `offen` setzen.
 
+### „Werte die Mitschnitte aus“ / „Was war im Gespräch mit …?“ (Mitschneider)
+Der Mitschneider (Make-Szenario aus `make/mitschneider.blueprint.json`) legt nichts ab. Aufnahmen liegen in Twilio:
+1. `node skripte/aufnahmen.mjs liste --seit JJJJ-MM-TT` (weitergeleitete Gespräche und Konferenz-Mitschnitte).
+2. `node skripte/aufnahmen.mjs transkript <RE…>` für die passenden Aufnahmen.
+3. Ging der Nutzer nicht ran, hat der Inbound-Bot das Anliegen aufgenommen: `gespraeche.mjs liste --agent inbound`.
+4. Zusammenfassung und Todos im Chat, mit Datum, Uhrzeit und Aufnahme-ID als Quelle.
+
+Änderungen am Ablauf (Ansagen, Klingeldauer, Weiterleitungsziel): in `make/mitschneider.local.json` bzw. in der Vorlage,
+dann `node skripte/make.mjs einspielen`. Wurde in Make per Hand geändert: erst `make.mjs holen` und mit dem Nutzer klären.
+
 ### „Ändere, wie der Bot …“
 1. `node skripte/agent.mjs vergleich <inbound|outbound>`. Steht da „unterschiedlich“, wurde in der ElevenLabs-Oberfläche
    geändert: erst `holen`, Diff mit dem Nutzer klären.

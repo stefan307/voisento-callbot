@@ -5,3 +5,5 @@ profil.local.md
 auftraege/*
 !auftraege/BEISPIEL_*.md
 agenten/*/agent.json
+make/*.local.json
+make/*.live.json

@@ -1,0 +1,278 @@
+{
+  "name": "%%SZENARIO_NAME%%",
+  "flow": [
+    {
+      "id": 2,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "mapper": {},
+      "parameters": {
+        "hook": "%%HOOK_ID%%",
+        "maxResults": 1
+      },
+      "metadata": {
+        "designer": {
+          "x": -800,
+          "y": 0,
+          "name": "Twilio: eingehender Anruf / Rückmeldung"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "metadata": {
+        "designer": {
+          "x": -500,
+          "y": 0
+        }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 4,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"de-DE\" voice=\"Polly.Vicki-Neural\">%%ANSAGE_MITSCHNITT%%</Say>\n  <Dial timeLimit=\"%%MAX_SEKUNDEN%%\">\n    <Conference record=\"record-from-start\" startConferenceOnEnter=\"true\" endConferenceOnExit=\"true\" beep=\"false\" waitUrl=\"\" maxParticipants=\"2\">mitschnitt-{{2.CallSid}}</Conference>\n  </Dial>\n</Response>",
+                "headers": [
+                  {
+                    "key": "Content-Type",
+                    "value": "text/xml"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": -100,
+                  "y": -400,
+                  "name": "Eigene Nummer: Ansage, dann stumm in Konferenz aufnehmen (Tastentöne stoppen nichts)"
+                }
+              },
+              "filter": {
+                "name": "1 - Eigene Nummer (Konferenz zum Mitschneiden)",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{2.step}}",
+                      "o": "notexist"
+                    },
+                    {
+                      "a": "%%EIGENE_NUMMERN%%",
+                      "b": "{{2.From}}",
+                      "o": "text:contains"
+                    }
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 5,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"de-DE\" voice=\"Polly.Vicki-Neural\">%%ANSAGE_WEITERLEITUNG%%</Say>\n  <Dial timeout=\"%%KLINGELN_SEKUNDEN%%\" record=\"record-from-answer-dual\" callerId=\"{{if(contains(2.From; \"+\"); 2.From; 2.To)}}\" action=\"%%HOOK_URL%%?step=fallback\">\n    <Number>%%WEITERLEITEN_AN%%</Number>\n  </Dial>\n</Response>",
+                "headers": [
+                  {
+                    "key": "Content-Type",
+                    "value": "text/xml"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": -100,
+                  "y": -100,
+                  "name": "Kunde: Ansage, weiterleiten mit Aufnahme"
+                }
+              },
+              "filter": {
+                "name": "2 - Kunde (weiterleiten)",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{2.step}}",
+                      "o": "notexist"
+                    },
+                    {
+                      "a": "%%EIGENE_NUMMERN%%",
+                      "b": "{{2.From}}",
+                      "o": "text:notcontains"
+                    }
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 6,
+              "module": "builtin:BasicIfElse",
+              "version": 1,
+              "mapper": null,
+              "filter": {
+                "name": "3 - Rückmeldung nach der Weiterleitung",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{2.step}}",
+                      "b": "fallback",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": -100,
+                  "y": 250,
+                  "name": "Abgenommen?"
+                }
+              },
+              "branches": [
+                {
+                  "type": "condition",
+                  "label": "abgenommen",
+                  "merge": false,
+                  "conditions": [
+                    [
+                      {
+                        "a": "{{2.DialCallStatus}}",
+                        "b": "completed",
+                        "o": "text:equal"
+                      }
+                    ]
+                  ],
+                  "flow": [
+                    {
+                      "id": 7,
+                      "module": "gateway:WebhookRespond",
+                      "version": 1,
+                      "parameters": {},
+                      "mapper": {
+                        "status": "200",
+                        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response><Hangup/></Response>",
+                        "headers": [
+                          {
+                            "key": "Content-Type",
+                            "value": "text/xml"
+                          }
+                        ]
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 250,
+                          "y": 150,
+                          "name": "Abgenommen: auflegen"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "else",
+                  "label": "",
+                  "merge": false,
+                  "disabled": false,
+                  "flow": [
+                    {
+                      "id": 8,
+                      "module": "http:MakeRequest",
+                      "version": 4,
+                      "parameters": {
+                        "tlsType": "",
+                        "apiKeyKeychain": "%%ELEVENLABS_KEY_ID%%",
+                        "authenticationType": "apiKey"
+                      },
+                      "mapper": {
+                        "url": "%%ELEVENLABS_API_BASE%%/v1/convai/twilio/register-call",
+                        "method": "post",
+                        "headers": [
+                          {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "timeout": "40",
+                        "contentType": "json",
+                        "inputMethod": "jsonString",
+                        "jsonStringBodyContent": "{\"agent_id\":\"%%AGENT_ID%%\",\"from_number\":\"{{2.From}}\",\"to_number\":\"{{2.To}}\",\"direction\":\"inbound\",\"conversation_initiation_client_data\":{\"conversation_config_override\":{\"agent\":{\"first_message\":\"%%ERSTE_NACHRICHT_RUECKWEG%%\"}}}}",
+                        "shareCookies": false,
+                        "parseResponse": false,
+                        "allowRedirects": true,
+                        "stopOnHttpError": true,
+                        "requestCompressedContent": true
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 250,
+                          "y": 400,
+                          "name": "Nicht abgenommen: Bot nimmt Anliegen auf (ElevenLabs)"
+                        }
+                      }
+                    },
+                    {
+                      "id": 9,
+                      "module": "gateway:WebhookRespond",
+                      "version": 1,
+                      "parameters": {},
+                      "mapper": {
+                        "status": "200",
+                        "body": "{{8.data}}",
+                        "headers": [
+                          {
+                            "key": "Content-Type",
+                            "value": "text/xml"
+                          }
+                        ]
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 600,
+                          "y": 400,
+                          "name": "TwiML von ElevenLabs an Twilio"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

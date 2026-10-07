@@ -109,7 +109,23 @@ Hast du in Schritt 1 einen Kalender-Connector gefunden und die Leseabfrage hat g
 Sonst: fragen, ob der Mensch einen Kalender verbinden möchte (in den Connector-Einstellungen von Claude).
 Ohne Kalender funktioniert alles andere. Den Spielraum für Termine fragst du dann bei jedem Auftrag ab.
 
-## Schritt 10: Abschluss und Test
+## Schritt 10 (optional): Mitschneider über Make
+
+Nur wenn der Mensch eingehende Anrufe mitschneiden will: Ansage, Weiterleitung an sein Handy mit Aufnahme,
+Rückfall auf den Inbound-Bot, wenn er nicht rangeht, und stummes Mitschneiden, wenn er die Nummer per Konferenz dazuholt.
+Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, die nur dafür da ist.
+
+1. Er legt in Make einen API-Token an (Rechte siehe `.env.example`) und trägt `MAKE_API_TOKEN`, `MAKE_API_BASE` und
+   `MAKE_TEAM_ID` selbst in `.env` ein. Ist in dieser Sitzung ein Make-Connector verbunden, kannst du Zone und Team-ID
+   damit nachsehen; der Token kommt trotzdem in die `.env`.
+2. `make/mitschneider.example.json` nach `make/mitschneider.local.json` kopieren. Mit ihm ausfüllen: an welche Nummer
+   weitergeleitet wird, welche Nummern als „eigene“ gelten (von dort nur mitschneiden), Ansagetexte.
+3. `node skripte/make.mjs vorschau`, dann `node skripte/make.mjs einspielen`. Das legt Webhook, Schlüssel und Szenario
+   in seinem Make an und schaltet es aktiv.
+4. Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die bisherige Einstellung,
+   mit `--ja` wird die Nummer auf das Szenario umgestellt.
+
+## Schritt 11: Abschluss und Test
 
 1. `node skripte/pruefen.mjs` zeigt überall `OK`.
 2. **Inbound**: Der Mensch ruft die Bot-Nummer an und schildert ein Testanliegen. Danach

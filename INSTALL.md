@@ -115,14 +115,24 @@ Nur wenn der Mensch eingehende Anrufe mitschneiden will: Ansage, Weiterleitung a
 Rückfall auf den Inbound-Bot, wenn er nicht rangeht, und stummes Mitschneiden, wenn er die Nummer per Konferenz dazuholt.
 Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, die nur dafür da ist.
 
-1. Er legt in Make einen API-Token an (Rechte siehe `.env.example`) und trägt `MAKE_API_TOKEN`, `MAKE_API_BASE` und
-   `MAKE_TEAM_ID` selbst in `.env` ein. Ist in dieser Sitzung ein Make-Connector verbunden, kannst du Zone und Team-ID
-   damit nachsehen; der Token kommt trotzdem in die `.env`.
-2. `make/mitschneider.example.json` nach `make/mitschneider.local.json` kopieren. Mit ihm ausfüllen: an welche Nummer
+1. `make/mitschneider.example.json` nach `make/mitschneider.local.json` kopieren. Mit ihm ausfüllen: an welche Nummer
    weitergeleitet wird, welche Nummern als „eigene“ gelten (von dort nur mitschneiden), Ansagetexte.
-3. `node skripte/make.mjs vorschau`, dann `node skripte/make.mjs einspielen`. Das legt Webhook, Schlüssel und Szenario
-   in seinem Make an und schaltet es aktiv.
-4. Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die bisherige Einstellung,
+2. **Frag nach seinem Make-Tarif.** Die Make-API gibt es laut Make erst ab „Core“; im Free-Plan außerdem nur
+   2 aktive Szenarien und 1.000 Credits im Monat (reicht zum Testen und für einige hundert Anrufe).
+   Ist ein Make-Connector in dieser Sitzung verbunden, kannst du Zone und Team-ID damit nachsehen.
+3. **Mit Make-API (Core oder höher):**
+   - Er legt in Make einen API-Token an (Rechte siehe `.env.example`) und trägt `MAKE_API_TOKEN`, `MAKE_API_BASE` und
+     `MAKE_TEAM_ID` selbst in `.env` ein.
+   - `node skripte/make.mjs vorschau`, dann `node skripte/make.mjs einspielen`. Das legt Webhook, Schlüssel und Szenario
+     in seinem Make an und schaltet es aktiv.
+4. **Ohne Make-API (Free-Plan):**
+   - Er legt in Make per Hand einen Webhook an (Custom webhook) und gibt dir dessen Adresse; die Webhook-ID steht in
+     der Webhook-Übersicht. Beides kommt als `hook_url` und `hook_id` in `make/mitschneider.local.json`.
+   - `node skripte/make.mjs export` schreibt `make/mitschneider.import.json`.
+   - Er importiert die Datei in Make („Blueprint importieren“), wählt im Modul „Nicht abgenommen“ den ElevenLabs-Schlüssel
+     aus bzw. legt ihn dort an (API-Key, Header `xi-api-key`), speichert und schaltet das Szenario ein.
+   - Spätere Änderungen laufen genauso: `export`, neu importieren.
+5. Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die bisherige Einstellung,
    mit `--ja` wird die Nummer auf das Szenario umgestellt.
 
 ## Schritt 11: Abschluss und Test

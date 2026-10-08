@@ -3,6 +3,7 @@
 //   node skripte/make.mjs einspielen               → legt Webhook/Schlüssel/Szenario an bzw. aktualisiert sie und schaltet aktiv
 //   node skripte/make.mjs holen                    → aktuellen Stand aus Make nach make/mitschneider.live.json (zum Vergleichen)
 //   node skripte/make.mjs nummer +49… [--ja]       → Twilio-Nummer auf den Webhook zeigen lassen (ohne --ja nur anzeigen)
+//   node skripte/make.mjs export                   → ohne Make-API (z. B. Free-Plan): befülltes Szenario als Datei zum Importieren
 //
 // Vorlage: make/mitschneider.blueprint.json (Platzhalter %%NAME%%, keine persönlichen Daten).
 // Eigene Werte: make/mitschneider.local.json (Vorlage make/mitschneider.example.json, nicht im Repo).
@@ -14,6 +15,7 @@ import { argumente, agentKonfig, el, tw, EL_BASIS, TW_BASIS, twZugang, ROOT } fr
 const VORLAGE = join(ROOT, 'make', 'mitschneider.blueprint.json');
 const LOKAL = join(ROOT, 'make', 'mitschneider.local.json');
 const LIVE = join(ROOT, 'make', 'mitschneider.live.json');
+const EXPORT = join(ROOT, 'make', 'mitschneider.import.json');
 
 const { pos, opt } = argumente();
 const befehl = pos[0];
@@ -65,11 +67,13 @@ function werte(k) {
   };
 }
 
-function fuellen(w) {
+function fuellen(w, { ohneSchluessel = false } = {}) {
   let text = readFileSync(VORLAGE, 'utf8');
   const fehlt = new Set();
   // Zahlen-IDs ohne Anführungszeichen einsetzen, alles andere als Text.
   text = text.replace(/"%%(HOOK_ID|ELEVENLABS_KEY_ID)%%"/g, (_, n) => {
+    // Beim Import wählt der Nutzer den Schlüssel in Make selbst aus.
+    if (n === 'ELEVENLABS_KEY_ID' && ohneSchluessel && !w[n]) return 'null';
     if (w[n] == null || w[n] === '') { fehlt.add(n); return '0'; }
     return String(Number(w[n]));
   });
@@ -78,6 +82,32 @@ function fuellen(w) {
     return String(w[n]).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   });
   return { blueprint: JSON.parse(text), fehlt: [...fehlt] };
+}
+
+// Der Bot bekommt auf dem Rückweg eine eigene Begrüßung; dafür muss er das Überschreiben erlauben.
+async function begruessungFreigeben(agent) {
+  const a = await el('/v1/convai/agents/' + agent.agent_id);
+  const ov = a.platform_settings?.overrides?.conversation_config_override?.agent || {};
+  if (!ov.first_message) {
+    await el('/v1/convai/agents/' + agent.agent_id, { method: 'PATCH', body: { platform_settings: { overrides: { conversation_config_override: { agent: { first_message: true } } } } } });
+    console.log('Inbound-Agent: Begrüßung darf jetzt pro Anruf überschrieben werden');
+  }
+}
+
+// Ohne Make-API: der Nutzer hat den Webhook in Make selbst angelegt (hook_id, hook_url in der lokalen Datei)
+// und importiert die erzeugte Datei per "Blueprint importieren".
+async function exportieren() {
+  const k = lokal();
+  if (!k.hook_id || !k.hook_url) throw new Error('hook_id und hook_url in make/mitschneider.local.json eintragen (Webhook vorher in Make anlegen)');
+  const agent = agentKonfig('inbound');
+  if (!agent.agent_id) throw new Error('Inbound-Agent fehlt (node skripte/anlegen.mjs inbound)');
+  await begruessungFreigeben(agent);
+  const { blueprint, fehlt } = fuellen(werte(k), { ohneSchluessel: true });
+  if (fehlt.length) throw new Error('Werte fehlen: ' + fehlt.join(', '));
+  writeFileSync(EXPORT, JSON.stringify(blueprint, null, 2) + '\n');
+  console.log('Geschrieben: make/mitschneider.import.json');
+  console.log('In Make: neues Szenario, Menü "Blueprint importieren", Datei wählen. Im Modul "Nicht abgenommen" den');
+  console.log('ElevenLabs-Schlüssel auswählen bzw. anlegen (API-Key im Header xi-api-key), speichern und Szenario einschalten.');
 }
 
 async function einspielen() {
@@ -101,13 +131,7 @@ async function einspielen() {
     console.log(`ElevenLabs-Schlüssel in Make hinterlegt (ID ${k.elevenlabs_key_id})`);
   }
 
-  // Der Bot bekommt auf dem Rückweg eine eigene Begrüßung; dafür muss er das Überschreiben erlauben.
-  const a = await el('/v1/convai/agents/' + agent.agent_id);
-  const ov = a.platform_settings?.overrides?.conversation_config_override?.agent || {};
-  if (!ov.first_message) {
-    await el('/v1/convai/agents/' + agent.agent_id, { method: 'PATCH', body: { platform_settings: { overrides: { conversation_config_override: { agent: { first_message: true } } } } } });
-    console.log('Inbound-Agent: Begrüßung darf jetzt pro Anruf überschrieben werden');
-  }
+  await begruessungFreigeben(agent);
 
   const { blueprint, fehlt } = fuellen(werte(k));
   if (fehlt.length) throw new Error('Werte fehlen: ' + fehlt.join(', '));
@@ -132,6 +156,8 @@ try {
     console.log(fehlt.length ? 'Noch offen: ' + fehlt.join(', ') + '\n(HOOK_ID/HOOK_URL/ELEVENLABS_KEY_ID legt "einspielen" selbst an)' : 'Vorlage vollständig befüllbar.');
   } else if (befehl === 'einspielen') {
     await einspielen();
+  } else if (befehl === 'export') {
+    await exportieren();
   } else if (befehl === 'holen') {
     const k = lokal();
     if (!k.scenario_id) throw new Error('Noch kein Szenario eingespielt');
@@ -162,7 +188,7 @@ try {
       console.log('Umgestellt.');
     }
   } else {
-    console.log('Aufruf: node skripte/make.mjs vorschau|einspielen|holen|nummer +49… [--ja]');
+    console.log('Aufruf: node skripte/make.mjs vorschau|einspielen|export|holen|nummer +49… [--ja]');
   }
 } catch (e) {
   console.error(e.message);

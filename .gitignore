@@ -7,3 +7,4 @@ auftraege/*
 agenten/*/agent.json
 make/*.local.json
 make/*.live.json
+make/*.import.json

@@ -130,6 +130,8 @@ Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, 
    - Er importiert die Datei in Make („Blueprint importieren“), legt im ersten Modul den Webhook an, wählt im Modul
      „Nicht abgenommen“ den ElevenLabs-Schlüssel aus bzw. legt ihn dort an (API-Key, Header `xi-api-key`), wählt im
      Modul „Anliegen per Mail“ seine Mail-Verbindung, speichert und schaltet das Szenario ein.
+     **Danach die Zeitplanung prüfen:** Nach einem Import steht sie nicht mehr auf „sofort“ (immediately). Dann
+     landen Anrufe in der Warteschlange und Twilio bekommt keine Anweisungen. Wieder auf „sofort“ stellen.
    - Die Webhook-Adresse aus dem ersten Modul trägst du als `hook_url` in `make/mitschneider.local.json` ein
      (gebraucht für Schritt 5).
    - Spätere Änderungen laufen genauso: `export`, neu importieren.

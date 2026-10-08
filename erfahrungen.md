@@ -32,3 +32,6 @@ Nur Felder herausgeben, die der Anlass braucht.
 - **08.10.2026, Make-Szenario Mitschneider:** Filter mit `text:contains` sprangen nie an. Make-Operatoren heißen
   `text:contain` / `text:notcontain` (ohne s); die Blueprint-Prüfung von Make meldet falsche Operatoren nicht.
   Operatoren aus einem laufenden Szenario abschreiben und nach dem Import mit einer nachgestellten Anfrage testen.
+- **08.10.2026, Make-Import:** Nach „Blueprint importieren“ stand die Zeitplanung nicht mehr auf „sofort“. Anfragen
+  landeten in der Warteschlange, der Webhook antwortete nur „Accepted“ statt mit Anweisungen. Nach jedem Import die
+  Zeitplanung prüfen (die API-Variante setzt sie selbst).

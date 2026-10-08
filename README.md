@@ -31,5 +31,4 @@ Offen:
    verwenden, siehe `erfahrungen.md`.
 2. Mitschneider (Make): Vorlage und Einspielskript stehen, noch nicht eingespielt und ohne Nummer getestet.
 3. Echte Telefonmenüs und Warteschleifen testen. Tastentöne laufen bei Twilio im Ton mit, manche Menüs erkennen sie nicht.
-4. Anrufe aus Slack auslösen.
-5. Live-Kalenderabgleich während des Gesprächs (heute schaut Claude vor dem Anruf in den Kalender).
+4. Live-Kalenderabgleich während des Gesprächs (heute schaut Claude vor dem Anruf in den Kalender).

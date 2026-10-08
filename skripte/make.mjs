@@ -104,10 +104,11 @@ async function begruessungFreigeben(agent) {
   }
 }
 
-// Ohne Make-API: der Nutzer importiert die erzeugte Datei per "Blueprint importieren" und wählt bzw. erstellt
-// im ersten Modul den Webhook. hook_id/hook_url sind dafür nicht nötig.
+// Standardweg ohne Make-API: der Nutzer importiert die erzeugte Datei per "Blueprint importieren".
+// hook_url muss vorher feststehen, weil Twilio beim Durchstellen (Update Call) eine volle Adresse verlangt.
 async function exportieren() {
   const k = lokal();
+  if (!k.hook_url) throw new Error('hook_url fehlt in make/mitschneider.local.json. Erst in Make einen Webhook anlegen und die Adresse eintragen (INSTALL.md, Schritt 10.2).');
   const agent = agentKonfig('inbound');
   if (!agent.agent_id) throw new Error('Inbound-Agent fehlt (node skripte/anlegen.mjs inbound)');
   await begruessungFreigeben(agent);

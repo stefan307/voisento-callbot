@@ -78,7 +78,9 @@ Der Mitschneider (Make-Szenario aus `make/mitschneider.blueprint.json`) legt nic
 4. Zusammenfassung und Todos im Chat, mit Datum, Uhrzeit und Aufnahme-ID als Quelle.
 
 Änderungen am Ablauf (Ansagen, Klingeldauer, Weiterleitungsziel): in `make/mitschneider.local.json` bzw. in der Vorlage,
-dann `node skripte/make.mjs einspielen`. Wurde in Make per Hand geändert: erst `make.mjs holen` und mit dem Nutzer klären.
+dann `node skripte/make.mjs export` und den Nutzer die Datei in Make importieren lassen (danach Zeitplanung auf
+„sofort“ prüfen, mit einer nachgestellten Anfrage testen). Nur mit Make-API: `einspielen` statt Import.
+Ändert der Nutzer etwas direkt in Make, vor dem nächsten Export mit ihm klären, sonst überschreibt der Import es.
 
 ### „Ändere, wie der Bot …“
 1. `node skripte/agent.mjs vergleich <inbound|outbound>`. Steht da „unterschiedlich“, wurde in der ElevenLabs-Oberfläche

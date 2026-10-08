@@ -126,48 +126,53 @@ Ohne Kalender funktioniert alles andere. Den Spielraum für Termine fragst du da
 
 ## Schritt 10 (optional): Mitschneider über Make
 
-Nur wenn der Mensch eingehende Anrufe mitschneiden will: Ansage, Weiterleitung an sein Handy mit Aufnahme,
-Rückfall auf den Inbound-Bot, wenn er nicht rangeht, und stummes Mitschneiden, wenn er die Nummer per Konferenz dazuholt.
-Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, die nur dafür da ist.
+Nur wenn der Mensch eingehende Anrufe über eine eigene Nummer laufen lassen will:
+- Anrufer → Inbound-Bot (Hinweis auf die Aufzeichnung, Anliegen aufnehmen, Mail);
+- will der Anrufer ihn sprechen → Weiterleitung an sein Handy mit Aufnahme; nicht abgenommen → zurück zum Bot;
+- holt er die Nummer selbst per Konferenz dazu → stummer Mitschnitt.
 
-1. `make/mitschneider.example.json` nach `make/mitschneider.local.json` kopieren. Mit ihm ausfüllen: an welche Nummer
-   weitergeleitet wird, welche Nummern als „eigene“ gelten (von dort nur mitschneiden), Ansagetexte und
-   **`mail_an`**, die Empfänger-Adresse für die Anliegen-Mails.
+Voraussetzungen siehe Schritt 2 (Make-Konto, Postfach als Mail-Verbindung in Make, Empfänger-Adresse, eigene Nummer).
+Eingerichtet wird **über die Make-Oberfläche per Import**. Das geht in jedem Make-Tarif, auch im Free-Plan
+(dort 2 aktive Szenarien und 1.000 Credits im Monat, reicht zum Testen und für einige hundert Anrufe).
+
+1. **Werte festlegen:** `make/mitschneider.example.json` nach `make/mitschneider.local.json` kopieren und mit ihm
+   ausfüllen: `weiterleiten_an` (sein Handy), `eigene_nummern` (von dort nur mitschneiden), `mail_an`, Ansagetexte.
    Wichtig: Holt er die Nummer per Konferenz dazu, hört die Ansage nur er selbst, nicht sein Gesprächspartner
-   (Twilio sieht nur seine Leitung und erkennt das Zusammenführen nicht). Den Hinweis auf die Aufzeichnung muss er
-   dem Gesprächspartner deshalb selbst geben, bevor er die Nummer dazuholt. Die Ansage ist nur seine Bestätigung.
-2. **Frag nach seinem Make-Tarif.** Die Make-API gibt es laut Make erst ab „Core“; im Free-Plan außerdem nur
-   2 aktive Szenarien und 1.000 Credits im Monat (reicht zum Testen und für einige hundert Anrufe).
-   Ist ein Make-Connector in dieser Sitzung verbunden, kannst du Zone und Team-ID damit nachsehen.
-3. **Mit Make-API (Core oder höher):**
-   - Er legt in Make einen API-Token an (Rechte siehe `.env.example`) und trägt `MAKE_API_TOKEN`, `MAKE_API_BASE` und
-     `MAKE_TEAM_ID` selbst in `.env` ein.
-   - Er legt in Make die **Mail-Verbindung** an (siehe Schritt 2). `node skripte/make.mjs verbindungen` listet die
-     Verbindungen mit ID; die passende kommt als `mail_verbindung_id` in `make/mitschneider.local.json`.
-   - `node skripte/make.mjs vorschau`, dann `node skripte/make.mjs einspielen`. Das legt Webhook, ElevenLabs- und
-     Twilio-Schlüssel (aus `.env`) und Szenario in seinem Make an und schaltet es aktiv.
-   - Einfacher und genauso gut: Schlüssel und Verbindungen legt er in Make per Hand an und trägt die IDs selbst in
-     `make/mitschneider.local.json` ein (`elevenlabs_key_id`, `twilio_key_id`, `mail_verbindung_id`). Was dort steht,
-     legt `einspielen` nicht neu an. Das ist auch der Weg, wenn das automatische Anlegen scheitert.
-4. **Ohne Make-API (Free-Plan):**
-   - `node skripte/make.mjs export` schreibt `make/mitschneider.import.json`.
-   - Er importiert die Datei in Make („Blueprint importieren“), legt im ersten Modul den Webhook an, wählt im Modul
-     „Nicht abgenommen“ den ElevenLabs-Schlüssel aus bzw. legt ihn dort an (API-Key, Header `xi-api-key`), wählt im
-     Modul „Anliegen per Mail“ seine Mail-Verbindung, im Modul „Bot stellt durch“ einen Twilio-Schlüssel (Basic Auth:
-     API-Key-SID als Benutzer, Secret als Passwort; bzw. legt ihn dort an), speichert und schaltet das Szenario ein.
-     **Danach die Zeitplanung prüfen:** Nach einem Import steht sie nicht mehr auf „sofort“ (immediately). Dann
-     landen Anrufe in der Warteschlange und Twilio bekommt keine Anweisungen. Wieder auf „sofort“ stellen.
-   - Die Webhook-Adresse aus dem ersten Modul trägst du als `hook_url` in `make/mitschneider.local.json` ein
-     (gebraucht für Schritt 5).
-   - Spätere Änderungen laufen genauso: `export`, neu importieren.
-5. `node skripte/make.mjs werkzeug` hängt die Werkzeuge `anliegen_senden` (Mail an `mail_an`) und `durchstellen`
-   (über Make, mit Rückweg zum Bot) an den Inbound-Bot und entfernt dessen eingebaute Weiterleitung.
-   Ablauf danach: Anrufer → Inbound-Bot; will er den Menschen sprechen → Weiterleitung mit Aufnahme; nicht abgenommen →
-   zurück zum Bot. Eigene Nummer per Konferenz → nur Mitschnitt.
-   Zum Prüfen: eine nachgestellte Bot-Meldung an `hook_url?step=anliegen` schicken (mit Node, nicht aus der Shell,
-   sonst gehen Umlaute kaputt) und schauen, ob die Mail bei `mail_an` ankommt.
-6. Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die bisherige Einstellung,
-   mit `--ja` wird die Nummer auf das Szenario umgestellt.
+   (Twilio sieht nur seine Leitung und erkennt das Zusammenführen nicht). Den Hinweis auf die Aufzeichnung gibt er
+   seinem Gesprächspartner deshalb selbst, bevor er die Nummer dazuholt. Die Ansage ist nur seine Bestätigung.
+2. **Webhook anlegen:** Er legt in Make einen neuen Webhook (Custom webhook) an, z. B. „callbot_mitschneider“, und
+   gibt dir die Adresse. Sie kommt als `hook_url` in `make/mitschneider.local.json`. Ist ein Make-Connector verbunden,
+   kannst du Adresse und ID (`hook_id`) auch selbst nachsehen; mit ID ist der Webhook nach dem Import schon gewählt.
+   Die Adresse wird gebraucht, weil Twilio beim Durchstellen eine volle Adresse verlangt.
+3. **Exportieren:** `node skripte/make.mjs export` schreibt `make/mitschneider.import.json`.
+4. **Importieren:** Er legt in Make ein neues Szenario an, „Blueprint importieren“, Datei wählen. Dann in den Modulen
+   auswählen bzw. dort anlegen:
+   - erstes Modul: den Webhook aus Schritt 2 (falls nicht schon gewählt);
+   - „Nicht abgenommen“ und „Kunde: Inbound-Bot übernimmt“: ElevenLabs-Schlüssel (API-Key, Header `xi-api-key`);
+   - „Bot stellt durch“: Twilio-Schlüssel (Basic Auth: API-Key-SID als Benutzer, Secret als Passwort);
+   - „Anliegen per Mail“: seine Mail-Verbindung.
+   Speichern, Szenario einschalten.
+5. **Zeitplanung prüfen:** Nach einem Import steht sie nicht mehr auf „sofort“ (immediately). Dann landen Anrufe in
+   der Warteschlange und Twilio bekommt keine Anweisungen. Auf „sofort“ stellen und speichern.
+   Tipp: Kennt Claude die IDs von Schlüsseln und Verbindung (`elevenlabs_key_id`, `twilio_key_id`,
+   `mail_verbindung_id` in der lokalen Datei, z. B. per Make-Connector nachgesehen), sind sie beim nächsten Import
+   schon vorausgewählt.
+6. **Bot anbinden:** `node skripte/make.mjs werkzeug` hängt die Werkzeuge `anliegen_senden` (Mail an `mail_an`) und
+   `durchstellen` (über Make, mit Rückweg) an den Inbound-Bot und entfernt dessen eingebaute Weiterleitung.
+7. **Prüfen ohne Anruf:** nachgestellte Anfragen an den Webhook schicken, mit Node (aus der Shell gehen Umlaute kaputt):
+   `?step=eingang` mit `From` = eigene Nummer → Antwort mit `<Start><Recording>`; mit fremder Nummer → TwiML von
+   ElevenLabs; `?step=anliegen` mit einer Test-Meldung → Mail kommt bei `mail_an` an. Antwortet der Webhook nur mit
+   „Accepted“, steht die Zeitplanung nicht auf „sofort“ oder ein Filter greift nicht.
+8. **Nummer umstellen:** Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die
+   bisherige Einstellung, mit `--ja` wird sie auf das Szenario umgestellt.
+
+Spätere Änderungen (Ansagen, Klingeldauer, Ziel): Werte in der lokalen Datei bzw. Vorlage ändern, `export`, neu
+importieren, Zeitplanung prüfen.
+
+**Optional, nur mit Make-API (laut Make ab Tarif „Core“):** Mit `MAKE_API_TOKEN`, `MAKE_API_BASE` und `MAKE_TEAM_ID`
+in `.env` (Rechte siehe `.env.example`) kann `node skripte/make.mjs einspielen` Webhook, Schlüssel und Szenario
+selbst anlegen bzw. aktualisieren und aktivieren; `make.mjs verbindungen` listet die Mail-Verbindungen mit ID,
+`make.mjs holen` den aktuellen Stand. Was in der lokalen Datei schon steht, legt `einspielen` nicht neu an.
 
 ## Schritt 11: Abschluss und Test
 

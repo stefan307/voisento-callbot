@@ -17,7 +17,7 @@ Stand prüfen jederzeit mit `node skripte/pruefen.mjs`.
 | `node skripte/konfig.mjs stimmen` / `--name … --nummer +49… --uebergabe +49… --stimme <id>` | Stimme aussuchen, lokale Agent-Einstellungen anlegen |
 | `node skripte/pruefen.mjs` | Einrichtung prüfen (Schlüssel, Agenten, Nummer, Profil), ändert nichts |
 | `node skripte/nummer.mjs zuordnen` | Twilio-Nummer dem Inbound-Agenten zuordnen |
-| `node skripte/make.mjs vorschau\|einspielen\|holen\|nummer +49…` | Mitschneider-Szenario in Make einspielen, Nummer umstellen |
+| `node skripte/make.mjs export\|werkzeug\|nummer +49…` | Mitschneider: Szenario zum Import in Make erzeugen, Bot anbinden, Nummer umstellen (optional mit Make-API: `einspielen`, `holen`, `verbindungen`) |
 | `node skripte/anlegen.mjs inbound\|outbound` | Agent einmalig in ElevenLabs anlegen (Werkzeuge, Datenerfassung, Stimme) |
 
 ## Stand

@@ -77,29 +77,42 @@
         {
           "flow": [
             {
-              "id": 5,
-              "module": "gateway:WebhookRespond",
-              "version": 1,
-              "parameters": {},
+              "id": 12,
+              "module": "http:MakeRequest",
+              "version": 4,
+              "parameters": {
+                "tlsType": "",
+                "apiKeyKeychain": "%%ELEVENLABS_KEY_ID%%",
+                "authenticationType": "apiKey"
+              },
               "mapper": {
-                "status": "200",
-                "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"de-DE\" voice=\"Polly.Vicki-Neural\">%%ANSAGE_WEITERLEITUNG%%</Say>\n  <Dial timeout=\"%%KLINGELN_SEKUNDEN%%\" record=\"record-from-answer-dual\" callerId=\"{{if(contains(2.From; \"+\"); 2.From; 2.To)}}\" action=\"%%HOOK_URL%%?step=fallback\">\n    <Number>%%WEITERLEITEN_AN%%</Number>\n  </Dial>\n</Response>",
+                "url": "%%ELEVENLABS_API_BASE%%/v1/convai/twilio/register-call",
+                "method": "post",
                 "headers": [
                   {
-                    "key": "Content-Type",
-                    "value": "text/xml"
+                    "name": "Content-Type",
+                    "value": "application/json"
                   }
-                ]
+                ],
+                "timeout": "40",
+                "contentType": "json",
+                "inputMethod": "jsonString",
+                "jsonStringBodyContent": "{\"agent_id\": \"%%AGENT_ID%%\", \"from_number\": \"{{2.From}}\", \"to_number\": \"{{2.To}}\", \"direction\": \"inbound\", \"conversation_initiation_client_data\": {\"dynamic_variables\": {\"call_sid\": \"{{2.CallSid}}\", \"durchstellen_erlaubt\": \"ja\"}}}",
+                "shareCookies": false,
+                "parseResponse": false,
+                "allowRedirects": true,
+                "stopOnHttpError": true,
+                "requestCompressedContent": true
               },
               "metadata": {
                 "designer": {
-                  "x": -100,
+                  "x": 250,
                   "y": -100,
-                  "name": "Kunde: Ansage, weiterleiten mit Aufnahme"
+                  "name": "Kunde: Inbound-Bot übernimmt (ElevenLabs)"
                 }
               },
               "filter": {
-                "name": "2 - Kunde (weiterleiten)",
+                "name": "2 - Kunde (Inbound-Bot)",
                 "conditions": [
                   [
                     {
@@ -114,6 +127,29 @@
                     }
                   ]
                 ]
+              }
+            },
+            {
+              "id": 13,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "body": "{{12.data}}",
+                "headers": [
+                  {
+                    "key": "Content-Type",
+                    "value": "text/xml"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": -100,
+                  "name": "TwiML von ElevenLabs an Twilio"
+                }
               }
             }
           ]
@@ -211,7 +247,7 @@
                         "timeout": "40",
                         "contentType": "json",
                         "inputMethod": "jsonString",
-                        "jsonStringBodyContent": "{\"agent_id\":\"%%AGENT_ID%%\",\"from_number\":\"{{2.From}}\",\"to_number\":\"{{2.To}}\",\"direction\":\"inbound\",\"conversation_initiation_client_data\":{\"conversation_config_override\":{\"agent\":{\"first_message\":\"%%ERSTE_NACHRICHT_RUECKWEG%%\"}}}}",
+                        "jsonStringBodyContent": "{\"agent_id\": \"%%AGENT_ID%%\", \"from_number\": \"{{2.From}}\", \"to_number\": \"{{2.To}}\", \"direction\": \"inbound\", \"conversation_initiation_client_data\": {\"conversation_config_override\": {\"agent\": {\"first_message\": \"%%ERSTE_NACHRICHT_RUECKWEG%%\"}}, \"dynamic_variables\": {\"call_sid\": \"{{2.CallSid}}\", \"durchstellen_erlaubt\": \"nein\"}}}",
                         "shareCookies": false,
                         "parseResponse": false,
                         "allowRedirects": true,
@@ -293,7 +329,7 @@
                 "priority": "normal",
                 "contentType": "text",
                 "subject": "Anliegen von {{ifempty(2.name; \"unbekannt\")}} ({{ifempty(2.rueckrufnummer; 2.anrufer)}})",
-                "text": "Ein neues Anliegen wurde telefonisch aufgenommen, weil niemand abgenommen hat.\n\nZeitpunkt: {{formatDate(now; \"DD.MM.YYYY HH:mm\"; \"Europe/Berlin\")}}\nName: {{ifempty(2.name; \"nicht genannt\")}}\nFirma: {{ifempty(2.firma; \"nicht genannt\")}}\nRückrufnummer: {{ifempty(2.rueckrufnummer; 2.anrufer)}} (angerufen von {{ifempty(2.anrufer; \"unbekannt\")}})\nFrist: {{ifempty(2.frist; \"keine genannt\")}}\n__________________________________\nAnliegen:\n{{2.anliegen}}\n\nGewünscht: {{ifempty(2.gewuenschte_aktion; \"nicht genannt\")}}\n__________________________________\nGesprächs-ID (ElevenLabs): {{2.conversation_id}}\n"
+                "text": "Ein neues Anliegen wurde telefonisch aufgenommen.\n\nZeitpunkt: {{formatDate(now; \"DD.MM.YYYY HH:mm\"; \"Europe/Berlin\")}}\nName: {{ifempty(2.name; \"nicht genannt\")}}\nFirma: {{ifempty(2.firma; \"nicht genannt\")}}\nRückrufnummer: {{ifempty(2.rueckrufnummer; 2.anrufer)}} (angerufen von {{ifempty(2.anrufer; \"unbekannt\")}})\nFrist: {{ifempty(2.frist; \"keine genannt\")}}\n__________________________________\nAnliegen:\n{{2.anliegen}}\n\nGewünscht: {{ifempty(2.gewuenschte_aktion; \"nicht genannt\")}}\n__________________________________\nGesprächs-ID (ElevenLabs): {{2.conversation_id}}\n"
               },
               "metadata": {
                 "designer": {
@@ -323,6 +359,121 @@
                   "x": 250,
                   "y": 1000,
                   "name": "OK an den Bot"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 14,
+              "module": "http:MakeRequest",
+              "version": 4,
+              "filter": {
+                "name": "5 - Bot stellt durch",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{2.step}}",
+                      "b": "durchstellen",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "parameters": {
+                "tlsType": "",
+                "basicAuthKeychain": "%%TWILIO_KEY_ID%%",
+                "authenticationType": "basicAuth"
+              },
+              "mapper": {
+                "url": "%%TWILIO_API_BASE%%/2010-04-01/Accounts/%%TWILIO_ACCOUNT_SID%%/Calls/{{2.call_sid}}.json",
+                "method": "post",
+                "contentType": "urlEncoded",
+                "urlEncodedBodyContent": [
+                  {
+                    "name": "Url",
+                    "value": "%%HOOK_URL%%?step=dial"
+                  },
+                  {
+                    "name": "Method",
+                    "value": "POST"
+                  }
+                ],
+                "shareCookies": false,
+                "parseResponse": false,
+                "allowRedirects": true,
+                "stopOnHttpError": true,
+                "requestCompressedContent": true
+              },
+              "metadata": {
+                "designer": {
+                  "x": -100,
+                  "y": 1300,
+                  "name": "Bot stellt durch: Anruf umleiten (Twilio)"
+                }
+              }
+            },
+            {
+              "id": 15,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "body": "{\"status\":\"ok\"}",
+                "headers": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 250,
+                  "y": 1300,
+                  "name": "OK an den Bot"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 16,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "6 - Weiterleitung mit Aufnahme",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{2.step}}",
+                      "b": "dial",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "status": "200",
+                "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Dial timeout=\"%%KLINGELN_SEKUNDEN%%\" record=\"record-from-answer-dual\" callerId=\"{{if(contains(2.From; \"+\"); 2.From; 2.To)}}\" action=\"%%HOOK_URL%%?step=fallback\">\n    <Number>%%WEITERLEITEN_AN%%</Number>\n  </Dial>\n</Response>",
+                "headers": [
+                  {
+                    "key": "Content-Type",
+                    "value": "text/xml"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": -100,
+                  "y": 1600,
+                  "name": "Weiterleitung mit Aufnahme (Rückweg: step=fallback)"
                 }
               }
             }

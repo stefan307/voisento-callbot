@@ -146,8 +146,11 @@ Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, 
    - Die Webhook-Adresse aus dem ersten Modul trägst du als `hook_url` in `make/mitschneider.local.json` ein
      (gebraucht für Schritt 5).
    - Spätere Änderungen laufen genauso: `export`, neu importieren.
-5. `node skripte/make.mjs werkzeug` hängt das Werkzeug `anliegen_senden` an den Inbound-Bot: Was der Bot aufnimmt,
-   geht dann per Mail an `mail_an` aus `make/mitschneider.local.json`.
+5. `node skripte/make.mjs werkzeug` hängt die Werkzeuge `anliegen_senden` (Mail an `mail_an`) und `durchstellen`
+   (über Make, mit Rückweg zum Bot) an den Inbound-Bot und entfernt dessen eingebaute Weiterleitung.
+   Ablauf danach: Anrufer → Inbound-Bot; will er den Menschen sprechen → Weiterleitung mit Aufnahme; nicht abgenommen →
+   zurück zum Bot. Eigene Nummer per Konferenz → nur Mitschnitt. Für `durchstellen` braucht das Szenario einen
+   Twilio-Schlüssel in Make (Basic Auth: API-Key-SID und Secret, `twilio_key_id` in der lokalen Datei bzw. beim Import wählen).
 6. Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die bisherige Einstellung,
    mit `--ja` wird die Nummer auf das Szenario umgestellt.
 

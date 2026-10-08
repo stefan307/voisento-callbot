@@ -67,6 +67,9 @@ function werte(k) {
     ELEVENLABS_KEY_ID: k.elevenlabs_key_id,
     MAIL_AN: k.mail_an,
     MAIL_VERBINDUNG_ID: k.mail_verbindung_id,
+    TWILIO_API_BASE: TW_BASIS,
+    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+    TWILIO_KEY_ID: k.twilio_key_id,
   };
 }
 
@@ -74,7 +77,7 @@ function fuellen(w, { ohneSchluessel = false } = {}) {
   let text = readFileSync(VORLAGE, 'utf8');
   const fehlt = new Set();
   // Zahlen-IDs ohne Anführungszeichen einsetzen, alles andere als Text.
-  text = text.replace(/"%%(HOOK_ID|ELEVENLABS_KEY_ID|MAIL_VERBINDUNG_ID)%%"/g, (_, n) => {
+  text = text.replace(/"%%(HOOK_ID|ELEVENLABS_KEY_ID|MAIL_VERBINDUNG_ID|TWILIO_KEY_ID)%%"/g, (_, n) => {
     // Beim Import wählt der Nutzer Webhook, Schlüssel und Mail-Verbindung in Make selbst aus.
     if (ohneSchluessel && !w[n]) return 'null';
     if (w[n] == null || w[n] === '') { fehlt.add(n); return '0'; }
@@ -150,27 +153,56 @@ async function werkzeug() {
       },
     },
   };
-  let toolId = k.anliegen_tool_id;
-  if (toolId) {
-    await el('/v1/convai/tools/' + toolId, { method: 'PATCH', body: { tool_config } });
-    console.log(`Werkzeug aktualisiert: ${toolId}`);
-  } else {
-    const r = await el('/v1/convai/tools', { method: 'POST', body: { tool_config } });
-    toolId = r.id; k.anliegen_tool_id = toolId; speichern(k);
-    console.log(`Werkzeug angelegt: ${toolId}`);
+  // Durchstellen über Make (statt ElevenLabs' transfer_to_number), damit es einen Rückweg zum Bot gibt.
+  const durchstellen = {
+    type: 'webhook',
+    name: 'durchstellen',
+    description: 'Stellt den Anrufer zu ' + (agent.im_auftrag_von || 'der zuständigen Person') + ' durch. Nimmt dort niemand ab, kommt der Anrufer automatisch zu dir zurück und du nimmst das Anliegen auf.',
+    response_timeout_secs: 20,
+    api_schema: {
+      url: k.hook_url + '?step=durchstellen',
+      method: 'POST',
+      request_headers: {},
+      request_body_schema: {
+        type: 'object',
+        description: 'Daten zum Durchstellen.',
+        required: ['call_sid', 'zusammenfassung'],
+        properties: {
+          call_sid: system('call_sid'),
+          zusammenfassung: text('Ein Satz: wer anruft und worum es geht.'),
+        },
+      },
+    },
+  };
+
+  const ids = [];
+  for (const [schluessel, konfig] of [['anliegen_tool_id', tool_config], ['durchstellen_tool_id', durchstellen]]) {
+    let id = k[schluessel];
+    if (id) {
+      await el('/v1/convai/tools/' + id, { method: 'PATCH', body: { tool_config: konfig } });
+      console.log(`Werkzeug ${konfig.name} aktualisiert: ${id}`);
+    } else {
+      const r = await el('/v1/convai/tools', { method: 'POST', body: { tool_config: konfig } });
+      id = r.id; k[schluessel] = id; speichern(k);
+      console.log(`Werkzeug ${konfig.name} angelegt: ${id}`);
+    }
+    ids.push(id);
   }
   const a = await el('/v1/convai/agents/' + agent.agent_id);
-  const ids = a.conversation_config.agent.prompt.tool_ids || [];
-  if (!ids.includes(toolId)) {
-    await el('/v1/convai/agents/' + agent.agent_id, { method: 'PATCH', body: { conversation_config: { agent: { prompt: { tool_ids: [...ids, toolId] } } } } });
-    console.log('Am Inbound-Bot eingehängt.');
-  } else console.log('Hängt schon am Inbound-Bot.');
+  const vorhanden = a.conversation_config.agent.prompt.tool_ids || [];
+  const bt = a.conversation_config.agent.prompt.built_in_tools || {};
+  await el('/v1/convai/agents/' + agent.agent_id, { method: 'PATCH', body: { conversation_config: { agent: {
+    prompt: { tool_ids: [...new Set([...vorhanden, ...ids])], built_in_tools: { ...bt, transfer_to_number: null } },
+    // Make liefert beide Werte bei jedem Anruf mit; die Vorgaben greifen nur, falls nicht.
+    dynamic_variables: { dynamic_variable_placeholders: { ...(a.conversation_config.agent.dynamic_variables?.dynamic_variable_placeholders || {}), call_sid: '', durchstellen_erlaubt: 'nein' } },
+  } } } });
+  console.log('Inbound-Bot: Werkzeuge eingehängt, eingebaute Weiterleitung (transfer_to_number) entfernt.');
 }
 
 async function einspielen() {
   const { team } = makeZugang();
   const k = lokal();
-  for (const feld of ['weiterleiten_an', 'eigene_nummern', 'ansage_weiterleitung', 'ansage_mitschnitt', 'erste_nachricht_rueckweg', 'mail_an', 'mail_verbindung_id']) {
+  for (const feld of ['weiterleiten_an', 'eigene_nummern', 'ansage_mitschnitt', 'erste_nachricht_rueckweg', 'mail_an', 'mail_verbindung_id', 'twilio_key_id']) {
     if (!k[feld] || (Array.isArray(k[feld]) && !k[feld].length)) throw new Error(`make/mitschneider.local.json: ${feld} fehlt`);
   }
   const agent = agentKonfig('inbound');

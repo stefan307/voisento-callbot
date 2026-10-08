@@ -128,12 +128,14 @@ Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, 
 4. **Ohne Make-API (Free-Plan):**
    - `node skripte/make.mjs export` schreibt `make/mitschneider.import.json`.
    - Er importiert die Datei in Make („Blueprint importieren“), legt im ersten Modul den Webhook an, wählt im Modul
-     „Nicht abgenommen“ den ElevenLabs-Schlüssel aus bzw. legt ihn dort an (API-Key, Header `xi-api-key`), speichert
-     und schaltet das Szenario ein.
+     „Nicht abgenommen“ den ElevenLabs-Schlüssel aus bzw. legt ihn dort an (API-Key, Header `xi-api-key`), wählt im
+     Modul „Anliegen per Mail“ seine Mail-Verbindung, speichert und schaltet das Szenario ein.
    - Die Webhook-Adresse aus dem ersten Modul trägst du als `hook_url` in `make/mitschneider.local.json` ein
      (gebraucht für Schritt 5).
    - Spätere Änderungen laufen genauso: `export`, neu importieren.
-5. Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die bisherige Einstellung,
+5. `node skripte/make.mjs werkzeug` hängt das Werkzeug `anliegen_senden` an den Inbound-Bot: Was der Bot aufnimmt,
+   geht dann per Mail an `mail_an` aus `make/mitschneider.local.json`.
+6. Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die bisherige Einstellung,
    mit `--ja` wird die Nummer auf das Szenario umgestellt.
 
 ## Schritt 11: Abschluss und Test

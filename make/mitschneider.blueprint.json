@@ -254,6 +254,79 @@
               ]
             }
           ]
+        },
+        {
+          "flow": [
+            {
+              "id": 10,
+              "module": "email:ActionSendEmail",
+              "version": 7,
+              "filter": {
+                "name": "4 - Anliegen vom Bot per Mail",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{2.step}}",
+                      "b": "anliegen",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "parameters": {
+                "account": "%%MAIL_VERBINDUNG_ID%%",
+                "saveAfterSent": false
+              },
+              "mapper": {
+                "to": [
+                  "%%MAIL_AN%%"
+                ],
+                "cc": [],
+                "bcc": [],
+                "from": "",
+                "sender": "",
+                "replyTo": "",
+                "inReplyTo": "",
+                "references": [],
+                "headers": [],
+                "attachments": [],
+                "priority": "normal",
+                "contentType": "text",
+                "subject": "Anliegen von {{ifempty(2.name; \"unbekannt\")}} ({{ifempty(2.rueckrufnummer; 2.anrufer)}})",
+                "text": "Ein neues Anliegen wurde telefonisch aufgenommen, weil niemand abgenommen hat.\n\nZeitpunkt: {{formatDate(now; \"DD.MM.YYYY HH:mm\"; \"Europe/Berlin\")}}\nName: {{ifempty(2.name; \"nicht genannt\")}}\nFirma: {{ifempty(2.firma; \"nicht genannt\")}}\nRückrufnummer: {{ifempty(2.rueckrufnummer; 2.anrufer)}} (angerufen von {{ifempty(2.anrufer; \"unbekannt\")}})\nFrist: {{ifempty(2.frist; \"keine genannt\")}}\n__________________________________\nAnliegen:\n{{2.anliegen}}\n\nGewünscht: {{ifempty(2.gewuenschte_aktion; \"nicht genannt\")}}\n__________________________________\nGesprächs-ID (ElevenLabs): {{2.conversation_id}}\n"
+              },
+              "metadata": {
+                "designer": {
+                  "x": -100,
+                  "y": 1000,
+                  "name": "Anliegen per Mail"
+                }
+              }
+            },
+            {
+              "id": 11,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "body": "{\"status\":\"ok\"}",
+                "headers": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 250,
+                  "y": 1000,
+                  "name": "OK an den Bot"
+                }
+              }
+            }
+          ]
         }
       ]
     }

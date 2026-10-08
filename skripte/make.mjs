@@ -4,6 +4,7 @@
 //   node skripte/make.mjs holen                    → aktuellen Stand aus Make nach make/mitschneider.live.json (zum Vergleichen)
 //   node skripte/make.mjs nummer +49… [--ja]       → Twilio-Nummer auf den Webhook zeigen lassen (ohne --ja nur anzeigen)
 //   node skripte/make.mjs export                   → ohne Make-API (z. B. Free-Plan): befülltes Szenario als Datei zum Importieren
+//   node skripte/make.mjs werkzeug                 → Werkzeug anliegen_senden am Inbound-Bot anlegen/aktualisieren (Mail über Weg 4)
 //
 // Vorlage: make/mitschneider.blueprint.json (Platzhalter %%NAME%%, keine persönlichen Daten).
 // Eigene Werte: make/mitschneider.local.json (Vorlage make/mitschneider.example.json, nicht im Repo).
@@ -64,6 +65,8 @@ function werte(k) {
     AGENT_ID: agent.agent_id,
     ELEVENLABS_API_BASE: EL_BASIS,
     ELEVENLABS_KEY_ID: k.elevenlabs_key_id,
+    MAIL_AN: k.mail_an,
+    MAIL_VERBINDUNG_ID: k.mail_verbindung_id,
   };
 }
 
@@ -71,8 +74,8 @@ function fuellen(w, { ohneSchluessel = false } = {}) {
   let text = readFileSync(VORLAGE, 'utf8');
   const fehlt = new Set();
   // Zahlen-IDs ohne Anführungszeichen einsetzen, alles andere als Text.
-  text = text.replace(/"%%(HOOK_ID|ELEVENLABS_KEY_ID)%%"/g, (_, n) => {
-    // Beim Import wählt der Nutzer Webhook und Schlüssel in Make selbst aus.
+  text = text.replace(/"%%(HOOK_ID|ELEVENLABS_KEY_ID|MAIL_VERBINDUNG_ID)%%"/g, (_, n) => {
+    // Beim Import wählt der Nutzer Webhook, Schlüssel und Mail-Verbindung in Make selbst aus.
     if (ohneSchluessel && !w[n]) return 'null';
     if (w[n] == null || w[n] === '') { fehlt.add(n); return '0'; }
     return String(Number(w[n]));
@@ -113,10 +116,61 @@ async function exportieren() {
   console.log('Speichern, Szenario einschalten. Die Webhook-Adresse kommt dann als hook_url in make/mitschneider.local.json (für "nummer").');
 }
 
+// Werkzeug am Inbound-Bot: schickt das aufgenommene Anliegen an Weg 4 des Szenarios (Mail).
+async function werkzeug() {
+  const k = lokal();
+  if (!k.hook_url) throw new Error('hook_url fehlt in make/mitschneider.local.json (erst einspielen bzw. importieren)');
+  const agent = agentKonfig('inbound');
+  if (!agent.agent_id) throw new Error('Inbound-Agent fehlt (node skripte/anlegen.mjs inbound)');
+  const text = (beschreibung) => ({ type: 'string', description: beschreibung, dynamic_variable: '', constant_value: '', is_system_provided: false });
+  const system = (variable) => ({ type: 'string', description: '', dynamic_variable: variable, constant_value: '', is_system_provided: false });
+  const tool_config = {
+    type: 'webhook',
+    name: 'anliegen_senden',
+    description: 'Schickt das aufgenommene Anliegen per Mail weiter. Aufrufen, sobald der Anrufer die Zusammenfassung bestätigt hat, und erst danach verabschieden.',
+    response_timeout_secs: 20,
+    api_schema: {
+      url: k.hook_url + '?step=anliegen',
+      method: 'POST',
+      request_headers: {},
+      request_body_schema: {
+        type: 'object',
+        description: 'Das aufgenommene Anliegen.',
+        required: ['anliegen', 'anrufer', 'conversation_id'],
+        properties: {
+          name: text('Vor- und Nachname des Anrufers, leer wenn nicht genannt.'),
+          firma: text('Firma des Anrufers, leer wenn nicht genannt.'),
+          rueckrufnummer: text('Bestätigte Rückrufnummer im Format +49…, leer wenn es die Nummer ist, von der angerufen wird.'),
+          anliegen: text('Das Anliegen in zwei bis drei Sätzen, mit allen genannten Nummern, Namen und Details.'),
+          gewuenschte_aktion: text('Was getan werden soll: zurückrufen, etwas schicken, entscheiden …'),
+          frist: text('Genannte Frist oder Dringlichkeit, leer wenn keine.'),
+          anrufer: system('system__caller_id'),
+          conversation_id: system('system__conversation_id'),
+        },
+      },
+    },
+  };
+  let toolId = k.anliegen_tool_id;
+  if (toolId) {
+    await el('/v1/convai/tools/' + toolId, { method: 'PATCH', body: { tool_config } });
+    console.log(`Werkzeug aktualisiert: ${toolId}`);
+  } else {
+    const r = await el('/v1/convai/tools', { method: 'POST', body: { tool_config } });
+    toolId = r.id; k.anliegen_tool_id = toolId; speichern(k);
+    console.log(`Werkzeug angelegt: ${toolId}`);
+  }
+  const a = await el('/v1/convai/agents/' + agent.agent_id);
+  const ids = a.conversation_config.agent.prompt.tool_ids || [];
+  if (!ids.includes(toolId)) {
+    await el('/v1/convai/agents/' + agent.agent_id, { method: 'PATCH', body: { conversation_config: { agent: { prompt: { tool_ids: [...ids, toolId] } } } } });
+    console.log('Am Inbound-Bot eingehängt.');
+  } else console.log('Hängt schon am Inbound-Bot.');
+}
+
 async function einspielen() {
   const { team } = makeZugang();
   const k = lokal();
-  for (const feld of ['weiterleiten_an', 'eigene_nummern', 'ansage_weiterleitung', 'ansage_mitschnitt', 'erste_nachricht_rueckweg']) {
+  for (const feld of ['weiterleiten_an', 'eigene_nummern', 'ansage_weiterleitung', 'ansage_mitschnitt', 'erste_nachricht_rueckweg', 'mail_an', 'mail_verbindung_id']) {
     if (!k[feld] || (Array.isArray(k[feld]) && !k[feld].length)) throw new Error(`make/mitschneider.local.json: ${feld} fehlt`);
   }
   const agent = agentKonfig('inbound');
@@ -161,6 +215,8 @@ try {
     await einspielen();
   } else if (befehl === 'export') {
     await exportieren();
+  } else if (befehl === 'werkzeug') {
+    await werkzeug();
   } else if (befehl === 'holen') {
     const k = lokal();
     if (!k.scenario_id) throw new Error('Noch kein Szenario eingespielt');
@@ -192,7 +248,7 @@ try {
       console.log('Umgestellt.');
     }
   } else {
-    console.log('Aufruf: node skripte/make.mjs vorschau|einspielen|export|holen|nummer +49… [--ja]');
+    console.log('Aufruf: node skripte/make.mjs vorschau|einspielen|export|werkzeug|holen|nummer +49… [--ja]');
   }
 } catch (e) {
   console.error(e.message);

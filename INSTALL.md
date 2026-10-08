@@ -117,6 +117,9 @@ Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, 
 
 1. `make/mitschneider.example.json` nach `make/mitschneider.local.json` kopieren. Mit ihm ausfüllen: an welche Nummer
    weitergeleitet wird, welche Nummern als „eigene“ gelten (von dort nur mitschneiden), Ansagetexte.
+   Wichtig: Holt er die Nummer per Konferenz dazu, hört die Ansage nur er selbst, nicht sein Gesprächspartner
+   (Twilio sieht nur seine Leitung und erkennt das Zusammenführen nicht). Den Hinweis auf die Aufzeichnung muss er
+   dem Gesprächspartner deshalb selbst geben, bevor er die Nummer dazuholt. Die Ansage ist nur seine Bestätigung.
 2. **Frag nach seinem Make-Tarif.** Die Make-API gibt es laut Make erst ab „Core“; im Free-Plan außerdem nur
    2 aktive Szenarien und 1.000 Credits im Monat (reicht zum Testen und für einige hundert Anrufe).
    Ist ein Make-Connector in dieser Sitzung verbunden, kannst du Zone und Team-ID damit nachsehen.

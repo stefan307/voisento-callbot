@@ -7,7 +7,7 @@
   "klingeln_sekunden": 15,
   "max_sekunden": 14400,
   "ansage_weiterleitung": "Guten Tag. Dieses Gespräch wird zur Bearbeitung aufgezeichnet. Ich verbinde Sie jetzt, einen Moment bitte.",
-  "ansage_mitschnitt": "Dieses Gespräch wird ab jetzt aufgezeichnet.",
+  "ansage_mitschnitt": "Aufnahme läuft.",
   "erste_nachricht_rueckweg": "Leider ist gerade niemand erreichbar. Darf ich Ihr Anliegen aufnehmen? Es wird dann direkt weitergegeben.",
   "mail_an": "name@beispiel.de",
   "mail_verbindung_id": null

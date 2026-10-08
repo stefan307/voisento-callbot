@@ -146,6 +146,9 @@ Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, 
      Verbindungen mit ID; die passende kommt als `mail_verbindung_id` in `make/mitschneider.local.json`.
    - `node skripte/make.mjs vorschau`, dann `node skripte/make.mjs einspielen`. Das legt Webhook, ElevenLabs- und
      Twilio-Schlüssel (aus `.env`) und Szenario in seinem Make an und schaltet es aktiv.
+   - Einfacher und genauso gut: Schlüssel und Verbindungen legt er in Make per Hand an und trägt die IDs selbst in
+     `make/mitschneider.local.json` ein (`elevenlabs_key_id`, `twilio_key_id`, `mail_verbindung_id`). Was dort steht,
+     legt `einspielen` nicht neu an. Das ist auch der Weg, wenn das automatische Anlegen scheitert.
 4. **Ohne Make-API (Free-Plan):**
    - `node skripte/make.mjs export` schreibt `make/mitschneider.import.json`.
    - Er importiert die Datei in Make („Blueprint importieren“), legt im ersten Modul den Webhook an, wählt im Modul

@@ -37,7 +37,14 @@ Der Mensch braucht:
 - ein **ElevenLabs-Konto** mit Zugang zu ElevenLabs Agents;
 - ein **Twilio-Konto** mit einer Telefonnummer, die Anrufe annehmen und tätigen kann.
 
-Frag, ob beides schon existiert. Wenn nicht: Er legt es selbst an, du legst keine Konten an.
+Nur für den Mitschneider (Schritt 10, optional) zusätzlich:
+- ein **Make-Konto** (Free reicht zum Testen, siehe Schritt 10);
+- ein **Postfach, aus dem Make Mails verschicken darf** (SMTP, Gmail oder Microsoft 365). Darüber gehen die
+  aufgenommenen Anliegen raus. Er legt es in Make selbst als Verbindung an, weil dafür eine Anmeldung nötig ist;
+- eine **Empfänger-Adresse** für diese Mails (meist seine eigene);
+- eine **eigene Twilio-Nummer** nur für den Mitschneider.
+
+Frag, ob das schon existiert. Wenn nicht: Er legt es selbst an, du legst keine Konten an.
 Frag außerdem, ob sein ElevenLabs-Konto auf einem **Data-Residency-Server** liegt (z. B. EU) und in welcher
 **Twilio-Region** die Nummer liegt (Standard US1, sonst z. B. Irland). Weiß er es nicht, findet `pruefen.mjs` es in
 Schritt 4 heraus: die Fehlermeldung nennt dann den falschen Server.
@@ -124,7 +131,8 @@ Rückfall auf den Inbound-Bot, wenn er nicht rangeht, und stummes Mitschneiden, 
 Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, die nur dafür da ist.
 
 1. `make/mitschneider.example.json` nach `make/mitschneider.local.json` kopieren. Mit ihm ausfüllen: an welche Nummer
-   weitergeleitet wird, welche Nummern als „eigene“ gelten (von dort nur mitschneiden), Ansagetexte.
+   weitergeleitet wird, welche Nummern als „eigene“ gelten (von dort nur mitschneiden), Ansagetexte und
+   **`mail_an`**, die Empfänger-Adresse für die Anliegen-Mails.
    Wichtig: Holt er die Nummer per Konferenz dazu, hört die Ansage nur er selbst, nicht sein Gesprächspartner
    (Twilio sieht nur seine Leitung und erkennt das Zusammenführen nicht). Den Hinweis auf die Aufzeichnung muss er
    dem Gesprächspartner deshalb selbst geben, bevor er die Nummer dazuholt. Die Ansage ist nur seine Bestätigung.
@@ -134,13 +142,16 @@ Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, 
 3. **Mit Make-API (Core oder höher):**
    - Er legt in Make einen API-Token an (Rechte siehe `.env.example`) und trägt `MAKE_API_TOKEN`, `MAKE_API_BASE` und
      `MAKE_TEAM_ID` selbst in `.env` ein.
-   - `node skripte/make.mjs vorschau`, dann `node skripte/make.mjs einspielen`. Das legt Webhook, Schlüssel und Szenario
-     in seinem Make an und schaltet es aktiv.
+   - Er legt in Make die **Mail-Verbindung** an (siehe Schritt 2). `node skripte/make.mjs verbindungen` listet die
+     Verbindungen mit ID; die passende kommt als `mail_verbindung_id` in `make/mitschneider.local.json`.
+   - `node skripte/make.mjs vorschau`, dann `node skripte/make.mjs einspielen`. Das legt Webhook, ElevenLabs- und
+     Twilio-Schlüssel (aus `.env`) und Szenario in seinem Make an und schaltet es aktiv.
 4. **Ohne Make-API (Free-Plan):**
    - `node skripte/make.mjs export` schreibt `make/mitschneider.import.json`.
    - Er importiert die Datei in Make („Blueprint importieren“), legt im ersten Modul den Webhook an, wählt im Modul
      „Nicht abgenommen“ den ElevenLabs-Schlüssel aus bzw. legt ihn dort an (API-Key, Header `xi-api-key`), wählt im
-     Modul „Anliegen per Mail“ seine Mail-Verbindung, speichert und schaltet das Szenario ein.
+     Modul „Anliegen per Mail“ seine Mail-Verbindung, im Modul „Bot stellt durch“ einen Twilio-Schlüssel (Basic Auth:
+     API-Key-SID als Benutzer, Secret als Passwort; bzw. legt ihn dort an), speichert und schaltet das Szenario ein.
      **Danach die Zeitplanung prüfen:** Nach einem Import steht sie nicht mehr auf „sofort“ (immediately). Dann
      landen Anrufe in der Warteschlange und Twilio bekommt keine Anweisungen. Wieder auf „sofort“ stellen.
    - Die Webhook-Adresse aus dem ersten Modul trägst du als `hook_url` in `make/mitschneider.local.json` ein
@@ -149,8 +160,9 @@ Er braucht dafür **ein eigenes Make-Konto** und **eine eigene Twilio-Nummer**, 
 5. `node skripte/make.mjs werkzeug` hängt die Werkzeuge `anliegen_senden` (Mail an `mail_an`) und `durchstellen`
    (über Make, mit Rückweg zum Bot) an den Inbound-Bot und entfernt dessen eingebaute Weiterleitung.
    Ablauf danach: Anrufer → Inbound-Bot; will er den Menschen sprechen → Weiterleitung mit Aufnahme; nicht abgenommen →
-   zurück zum Bot. Eigene Nummer per Konferenz → nur Mitschnitt. Für `durchstellen` braucht das Szenario einen
-   Twilio-Schlüssel in Make (Basic Auth: API-Key-SID und Secret, `twilio_key_id` in der lokalen Datei bzw. beim Import wählen).
+   zurück zum Bot. Eigene Nummer per Konferenz → nur Mitschnitt.
+   Zum Prüfen: eine nachgestellte Bot-Meldung an `hook_url?step=anliegen` schicken (mit Node, nicht aus der Shell,
+   sonst gehen Umlaute kaputt) und schauen, ob die Mail bei `mail_an` ankommt.
 6. Erst wenn die Nummer feststeht und er zustimmt: `node skripte/make.mjs nummer +49…` zeigt die bisherige Einstellung,
    mit `--ja` wird die Nummer auf das Szenario umgestellt.
 

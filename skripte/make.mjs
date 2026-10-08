@@ -4,6 +4,7 @@
 //   node skripte/make.mjs holen                    → aktuellen Stand aus Make nach make/mitschneider.live.json (zum Vergleichen)
 //   node skripte/make.mjs nummer +49… [--ja]       → Twilio-Nummer auf den Webhook zeigen lassen (ohne --ja nur anzeigen)
 //   node skripte/make.mjs export                   → ohne Make-API (z. B. Free-Plan): befülltes Szenario als Datei zum Importieren
+//   node skripte/make.mjs verbindungen             → Mail-Verbindungen im eigenen Make mit ID auflisten (für mail_verbindung_id)
 //   node skripte/make.mjs werkzeug                 → Werkzeug anliegen_senden am Inbound-Bot anlegen/aktualisieren (Mail über Weg 4)
 //
 // Vorlage: make/mitschneider.blueprint.json (Platzhalter %%NAME%%, keine persönlichen Daten).
@@ -202,7 +203,7 @@ async function werkzeug() {
 async function einspielen() {
   const { team } = makeZugang();
   const k = lokal();
-  for (const feld of ['weiterleiten_an', 'eigene_nummern', 'ansage_mitschnitt', 'erste_nachricht_rueckweg', 'mail_an', 'mail_verbindung_id', 'twilio_key_id']) {
+  for (const feld of ['weiterleiten_an', 'eigene_nummern', 'ansage_mitschnitt', 'erste_nachricht_rueckweg', 'mail_an', 'mail_verbindung_id']) {
     if (!k[feld] || (Array.isArray(k[feld]) && !k[feld].length)) throw new Error(`make/mitschneider.local.json: ${feld} fehlt`);
   }
   const agent = agentKonfig('inbound');
@@ -212,6 +213,13 @@ async function einspielen() {
     const r = await make('/hooks', { method: 'POST', body: { name: `${k.szenario_name || 'Callbot Mitschneider'} (Twilio)`, teamId: team, typeName: 'gateway-webhook', method: false, headers: false, stringify: false } });
     k.hook_id = r.hook.id; k.hook_url = r.hook.url; speichern(k);
     console.log(`Webhook angelegt: ${k.hook_url}`);
+  }
+  if (!k.twilio_key_id) {
+    // Twilio-Schlüssel fürs Umleiten beim Durchstellen (Basic Auth mit API-Key-SID und Secret aus .env).
+    const { sid, geheim } = twZugang();
+    const r = await make('/keys', { method: 'POST', body: { teamId: team, name: 'callbot-twilio', typeName: 'basicauth', parameters: { username: sid, password: geheim } } });
+    k.twilio_key_id = r.key.id; speichern(k);
+    console.log(`Twilio-Schlüssel in Make hinterlegt (ID ${k.twilio_key_id})`);
   }
   if (!k.elevenlabs_key_id) {
     // API-Schlüssel für register-call als Make-Schlüssel hinterlegen (Header xi-api-key).
@@ -247,6 +255,12 @@ try {
     await einspielen();
   } else if (befehl === 'export') {
     await exportieren();
+  } else if (befehl === 'verbindungen') {
+    const { team } = makeZugang();
+    const r = await make(`/connections?teamId=${team}`);
+    const mail = (r.connections || []).filter(c => /smtp|google|microsoft|email|gmail/i.test(`${c.accountName} ${c.accountType} ${c.packageName || ''}`));
+    for (const c of mail.length ? mail : r.connections || []) console.log(`${c.id} | ${c.name} | ${c.accountLabel || c.accountName} | ${c.metadata?.value || ''}`);
+    if (!mail.length) console.log('(keine eindeutige Mail-Verbindung gefunden, oben alle Verbindungen)');
   } else if (befehl === 'werkzeug') {
     await werkzeug();
   } else if (befehl === 'holen') {
@@ -280,7 +294,7 @@ try {
       console.log('Umgestellt.');
     }
   } else {
-    console.log('Aufruf: node skripte/make.mjs vorschau|einspielen|export|werkzeug|holen|nummer +49… [--ja]');
+    console.log('Aufruf: node skripte/make.mjs vorschau|einspielen|export|verbindungen|werkzeug|holen|nummer +49… [--ja]');
   }
 } catch (e) {
   console.error(e.message);

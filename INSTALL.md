@@ -46,8 +46,16 @@ Schritt 4 heraus: die Fehlermeldung nennt dann den falschen Server.
 
 1. `.env.example` nach `.env` kopieren.
 2. Dem Menschen sagen, welche Werte er selbst eintragen muss:
-   - **ELEVENLABS_API_KEY**: API-Schlüssel mit den Rechten *ElevenLabs Agents* (lesen und schreiben), *Voices* (lesen)
-     und *Speech to Text*.
+   - **ELEVENLABS_API_KEY**: API-Schlüssel mit diesen Rechten (mehr braucht es nicht):
+
+     | Recht in ElevenLabs | wofür | Skripte |
+     |---|---|---|
+     | ElevenLabs Agents: lesen | Agenten, Gespräche, Nummern lesen | `gespraeche.mjs`, `agent.mjs vergleich`, `pruefen.mjs`, `konfig.mjs` |
+     | ElevenLabs Agents: schreiben | Agenten und Werkzeuge anlegen/ändern, Nummer zuordnen, ausgehende Anrufe | `anlegen.mjs`, `agent.mjs senden`, `nummer.mjs`, `anruf.mjs`, `make.mjs werkzeug` |
+     | Voices: lesen | Stimmen auflisten | `konfig.mjs stimmen` (optional, Stimme geht auch per ID) |
+     | Speech to Text | Twilio-Mitschnitte transkribieren | `aufnahmen.mjs transkript` (optional, nur mit Mitschneider) |
+
+     Fehlt ein Recht, meldet die API „missing the permission …“; der Schlüssel stimmt dann, nur das Recht fehlt.
    - **ELEVENLABS_API_BASE**: nur bei Data-Residency-Konten, z. B. `https://api.eu.residency.elevenlabs.io`.
    - **TWILIO_ACCOUNT_SID**: Konto-SID, beginnt mit `AC`.
    - **TWILIO_KEY_SID / TWILIO_KEY_SECRET**: ein Twilio-API-Schlüssel (SID beginnt mit `SK`) aus derselben Region wie die Nummer.

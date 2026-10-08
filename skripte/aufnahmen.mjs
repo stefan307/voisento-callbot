@@ -60,7 +60,10 @@ async function transkript(sid) {
   } else {
     form.set('diarize', 'true');
   }
-  const r = await el('/v1/speech-to-text', { method: 'POST', form });
+  const r = await el('/v1/speech-to-text', { method: 'POST', form }).catch(e => {
+    if (/speech_to_text/.test(e.message)) throw new Error('Dem ElevenLabs-Schlüssel fehlt das Recht "Speech to Text" (siehe INSTALL.md, Schritt 3). Ausweg: Aufnahme herunterladen und über den ElevenLabs-Connector transkribieren.');
+    throw e;
+  });
 
   // Bei Dual-Aufnahme einer Weiterleitung: Kanal 0 = Anrufer, Kanal 1 = angerufene Seite.
   const name = w => w.channel_index !== undefined

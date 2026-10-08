@@ -72,6 +72,8 @@ Rückfragen nur, wenn Nummer oder Anlass fehlen oder Daten herausgegeben werden 
 Der Mitschneider (Make-Szenario aus `make/mitschneider.blueprint.json`) legt nichts ab. Aufnahmen liegen in Twilio:
 1. `node skripte/aufnahmen.mjs liste --seit JJJJ-MM-TT` (weitergeleitete Gespräche und Konferenz-Mitschnitte).
 2. `node skripte/aufnahmen.mjs transkript <RE…>` für die passenden Aufnahmen.
+   Meldet das Skript, dass das Recht „Speech to Text“ fehlt: Aufnahme als MP3 holen, auf den Desktop legen, über den
+   ElevenLabs-Connector transkribieren (dann ohne Sprechertrennung) und die Datei danach löschen.
 3. Ging der Nutzer nicht ran, hat der Inbound-Bot das Anliegen aufgenommen: `gespraeche.mjs liste --agent inbound`.
 4. Zusammenfassung und Todos im Chat, mit Datum, Uhrzeit und Aufnahme-ID als Quelle.
 

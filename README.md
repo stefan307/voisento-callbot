@@ -20,15 +20,13 @@ Stand prüfen jederzeit mit `node skripte/pruefen.mjs`.
 | `node skripte/make.mjs vorschau\|einspielen\|holen\|nummer +49…` | Mitschneider-Szenario in Make einspielen, Nummer umstellen |
 | `node skripte/anlegen.mjs inbound\|outbound` | Agent einmalig in ElevenLabs anlegen (Werkzeuge, Datenerfassung, Stimme) |
 
-## Stand und offene Punkte
+## Stand
 
-Läuft und ist mit echten Anrufen getestet: ausgehende Anrufe aus Aufträgen (Versicherung mit Übergabe,
-Tischreservierung, Arzttermin mit Kalendereintrag), Stimmwechsel im Gespräch, zeitgesteuerte Anrufe.
-Eigene IDs, Nummern und Schlüssel stehen nur lokal (`.env`, `agenten/*/agent.json`, `profil.local.md`).
+Mit echten Anrufen getestet:
+- **Outbound:** Aufträge (Versicherung mit Übergabe, Tischreservierung, Arzttermin mit Kalendereintrag),
+  Stimmwechsel im Gespräch, zeitgesteuerte Anrufe.
+- **Mitschneider (Make) mit Inbound-Bot:** Weiterleitung mit Aufnahme auf zwei Spuren; nicht abgenommen →
+  Bot nimmt das Anliegen auf → Mail; Nummer per Konferenz dazuholen → stummer Mitschnitt.
 
-Offen:
-1. Eingehender Bot im Praxistest. Bei echten eingehenden Anrufen keine `{{…}}`-Variablen in Prompt und Begrüßung
-   verwenden, siehe `erfahrungen.md`.
-2. Mitschneider (Make): Vorlage und Einspielskript stehen, noch nicht eingespielt und ohne Nummer getestet.
-3. Echte Telefonmenüs und Warteschleifen testen. Tastentöne laufen bei Twilio im Ton mit, manche Menüs erkennen sie nicht.
-4. Live-Kalenderabgleich während des Gesprächs (heute schaut Claude vor dem Anruf in den Kalender).
+Eigene IDs, Nummern und Schlüssel stehen nur lokal (`.env`, `agenten/*/agent.json`, `make/*.local.json`,
+`profil.local.md`).

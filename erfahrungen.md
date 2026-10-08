@@ -29,3 +29,6 @@ Nur Felder herausgeben, die der Anlass braucht.
 - **06.10.2026, Anruf unter Freunden:** Eine Zusatzstimme mit der Beschreibung „Immer wenn X spricht“ hat der Bot im
   ganzen Gespräch benutzt, obwohl der Auftrag sie nicht verlangte. Beschreibung von Zusatzstimmen immer als
   „nicht benutzen, außer der Auftrag verlangt es“ formulieren. Im Prompt steht die Regel jetzt auch.
+- **08.10.2026, Make-Szenario Mitschneider:** Filter mit `text:contains` sprangen nie an. Make-Operatoren heißen
+  `text:contain` / `text:notcontain` (ohne s); die Blueprint-Prüfung von Make meldet falsche Operatoren nicht.
+  Operatoren aus einem laufenden Szenario abschreiben und nach dem Import mit einer nachgestellten Anfrage testen.

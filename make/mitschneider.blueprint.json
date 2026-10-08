@@ -14,7 +14,7 @@
         "designer": {
           "x": -800,
           "y": 0,
-          "name": "Twilio: eingehender Anruf / Rückmeldung"
+          "name": "Twilio: eingehender Anruf (?step=eingang) / Rückmeldung (?step=fallback)"
         }
       }
     },
@@ -60,12 +60,13 @@
                   [
                     {
                       "a": "{{2.step}}",
-                      "o": "notexist"
+                      "b": "eingang",
+                      "o": "text:equal"
                     },
                     {
                       "a": "%%EIGENE_NUMMERN%%",
                       "b": "{{2.From}}",
-                      "o": "text:contains"
+                      "o": "text:contain"
                     }
                   ]
                 ]
@@ -103,12 +104,13 @@
                   [
                     {
                       "a": "{{2.step}}",
-                      "o": "notexist"
+                      "b": "eingang",
+                      "o": "text:equal"
                     },
                     {
                       "a": "%%EIGENE_NUMMERN%%",
                       "b": "{{2.From}}",
-                      "o": "text:notcontains"
+                      "o": "text:notcontain"
                     }
                   ]
                 ]

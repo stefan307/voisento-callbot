@@ -72,12 +72,15 @@ function fuellen(w, { ohneSchluessel = false } = {}) {
   const fehlt = new Set();
   // Zahlen-IDs ohne Anführungszeichen einsetzen, alles andere als Text.
   text = text.replace(/"%%(HOOK_ID|ELEVENLABS_KEY_ID)%%"/g, (_, n) => {
-    // Beim Import wählt der Nutzer den Schlüssel in Make selbst aus.
-    if (n === 'ELEVENLABS_KEY_ID' && ohneSchluessel && !w[n]) return 'null';
+    // Beim Import wählt der Nutzer Webhook und Schlüssel in Make selbst aus.
+    if (ohneSchluessel && !w[n]) return 'null';
     if (w[n] == null || w[n] === '') { fehlt.add(n); return '0'; }
     return String(Number(w[n]));
   });
   text = text.replace(/%%([A-Z_0-9]+)%%/g, (_, n) => {
+    // Ohne Webhook-Adresse bleibt die Rückmeldung relativ ("?step=fallback"); Twilio schickt sie dann an
+    // dieselbe Adresse, über die der Anruf hereinkam.
+    if (n === 'HOOK_URL' && ohneSchluessel && !w[n]) return '';
     if (w[n] == null || w[n] === '') { fehlt.add(n); return `%%${n}%%`; }
     return String(w[n]).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   });
@@ -94,11 +97,10 @@ async function begruessungFreigeben(agent) {
   }
 }
 
-// Ohne Make-API: der Nutzer hat den Webhook in Make selbst angelegt (hook_id, hook_url in der lokalen Datei)
-// und importiert die erzeugte Datei per "Blueprint importieren".
+// Ohne Make-API: der Nutzer importiert die erzeugte Datei per "Blueprint importieren" und wählt bzw. erstellt
+// im ersten Modul den Webhook. hook_id/hook_url sind dafür nicht nötig.
 async function exportieren() {
   const k = lokal();
-  if (!k.hook_id || !k.hook_url) throw new Error('hook_id und hook_url in make/mitschneider.local.json eintragen (Webhook vorher in Make anlegen)');
   const agent = agentKonfig('inbound');
   if (!agent.agent_id) throw new Error('Inbound-Agent fehlt (node skripte/anlegen.mjs inbound)');
   await begruessungFreigeben(agent);
@@ -106,8 +108,9 @@ async function exportieren() {
   if (fehlt.length) throw new Error('Werte fehlen: ' + fehlt.join(', '));
   writeFileSync(EXPORT, JSON.stringify(blueprint, null, 2) + '\n');
   console.log('Geschrieben: make/mitschneider.import.json');
-  console.log('In Make: neues Szenario, Menü "Blueprint importieren", Datei wählen. Im Modul "Nicht abgenommen" den');
-  console.log('ElevenLabs-Schlüssel auswählen bzw. anlegen (API-Key im Header xi-api-key), speichern und Szenario einschalten.');
+  console.log('In Make: neues Szenario, Menü "Blueprint importieren", Datei wählen.');
+  console.log('Im ersten Modul den Webhook wählen oder neu anlegen' + (k.elevenlabs_key_id ? '' : ', im Modul "Nicht abgenommen" den ElevenLabs-Schlüssel wählen bzw. anlegen (API-Key, Header xi-api-key)') + '.');
+  console.log('Speichern, Szenario einschalten. Die Webhook-Adresse kommt dann als hook_url in make/mitschneider.local.json (für "nummer").');
 }
 
 async function einspielen() {
@@ -174,14 +177,15 @@ try {
     const n = r.incoming_phone_numbers[0];
     if (!n) throw new Error(`Nummer ${nummer} nicht im Twilio-Konto unter ${TW_BASIS}`);
     console.log(`${nummer}: bisher ${n.voice_method} ${n.voice_url || '(leer)'}`);
-    console.log(`neu:     POST ${k.hook_url}`);
+    const ziel = k.hook_url + '?step=eingang';
+    console.log(`neu:     POST ${ziel}`);
     if (!opt.ja) { console.log('Nur Anzeige. Mit --ja wird umgestellt (die bisherige Einstellung steht oben, falls ihr zurück wollt).'); }
     else {
       const { sid, geheim, konto } = twZugang();
       const res = await fetch(`${TW_BASIS}/2010-04-01/Accounts/${konto}/IncomingPhoneNumbers/${n.sid}.json`, {
         method: 'POST',
         headers: { authorization: 'Basic ' + Buffer.from(`${sid}:${geheim}`).toString('base64'), 'content-type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ VoiceUrl: k.hook_url, VoiceMethod: 'POST' }),
+        body: new URLSearchParams({ VoiceUrl: ziel, VoiceMethod: 'POST' }),
       });
       if (!res.ok) throw new Error(`Twilio: ${res.status} ${(await res.text()).slice(0, 300)}`);
       k.nummer = nummer; k.nummer_vorher = `${n.voice_method} ${n.voice_url || ''}`.trim(); speichern(k);

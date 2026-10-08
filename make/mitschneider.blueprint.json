@@ -39,7 +39,7 @@
               "parameters": {},
               "mapper": {
                 "status": "200",
-                "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"de-DE\" voice=\"Polly.Vicki-Neural\">%%ANSAGE_MITSCHNITT%%</Say>\n  <Dial timeLimit=\"%%MAX_SEKUNDEN%%\">\n    <Conference record=\"record-from-start\" startConferenceOnEnter=\"true\" endConferenceOnExit=\"true\" beep=\"false\" waitUrl=\"\" maxParticipants=\"2\">mitschnitt-{{2.CallSid}}</Conference>\n  </Dial>\n</Response>",
+                "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Start><Recording channels=\"dual\" trim=\"do-not-trim\"/></Start>\n  <Say language=\"de-DE\" voice=\"Polly.Vicki-Neural\">%%ANSAGE_MITSCHNITT%%</Say>\n  <Pause length=\"%%MAX_SEKUNDEN%%\"/>\n</Response>",
                 "headers": [
                   {
                     "key": "Content-Type",
@@ -51,7 +51,7 @@
                 "designer": {
                   "x": -100,
                   "y": -400,
-                  "name": "Eigene Nummer: Ansage, dann stumm in Konferenz aufnehmen (Tastentöne stoppen nichts)"
+                  "name": "Eigene Nummer: Aufnahme starten, Ansage, dann stumm mithören (Tastentöne stoppen nichts)"
                 }
               },
               "filter": {

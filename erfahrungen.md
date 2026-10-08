@@ -35,3 +35,6 @@ Nur Felder herausgeben, die der Anlass braucht.
 - **08.10.2026, Make-Import:** Nach „Blueprint importieren“ stand die Zeitplanung nicht mehr auf „sofort“. Anfragen
   landeten in der Warteschlange, der Webhook antwortete nur „Accepted“ statt mit Anweisungen. Nach jedem Import die
   Zeitplanung prüfen (die API-Variante setzt sie selbst).
+- **08.10.2026, Mitschneider per Konferenz:** Keine Aufnahme. Twilio nimmt eine `<Conference>` erst auf, wenn zwei
+  Teilnehmer verbunden sind; beim Mitschneiden ist nur eine Leitung im Raum. Richtig ist `<Start><Recording>` plus
+  lange `<Pause>`: nimmt den Anruf selbst auf, Tastentöne beenden nichts. (`<Record>` endet bei jedem Tastendruck.)

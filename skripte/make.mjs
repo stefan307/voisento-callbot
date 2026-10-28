@@ -5,19 +5,26 @@
 //   node skripte/make.mjs nummer +49… [--ja]       → Twilio-Nummer auf den Webhook zeigen lassen (ohne --ja nur anzeigen)
 //   node skripte/make.mjs export                   → ohne Make-API (z. B. Free-Plan): befülltes Szenario als Datei zum Importieren
 //   node skripte/make.mjs verbindungen             → Mail-Verbindungen im eigenen Make mit ID auflisten (für mail_verbindung_id)
-//   node skripte/make.mjs werkzeug                 → Werkzeug anliegen_senden am Inbound-Bot anlegen/aktualisieren (Mail über Weg 4)
+//   node skripte/make.mjs werkzeug                 → Werkzeuge am Inbound-Bot anlegen/aktualisieren: anliegen_senden und
+//                                                    durchstellen (Mitschneider), anrufer_kontext (Anrufer-Kontext)
+//   node skripte/make.mjs kontext-export           → Szenario "Anrufer-Kontext" als Datei zum Importieren
 //
 // Vorlage: make/mitschneider.blueprint.json (Platzhalter %%NAME%%, keine persönlichen Daten).
 // Eigene Werte: make/mitschneider.local.json (Vorlage make/mitschneider.example.json, nicht im Repo).
+// Anrufer-Kontext: make/kontext.blueprint.json, eigene Werte in make/kontext.local.json (Vorlage kontext.example.json).
+// anruf.mjs trägt jeden ausgehenden Anruf dort ein; ruft jemand zurück, fragt der Bot mit anrufer_kontext nach.
 // Zugang: MAKE_API_TOKEN, MAKE_API_BASE, MAKE_TEAM_ID in .env. Es ist immer der Make-Zugang des Nutzers.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { argumente, agentKonfig, el, tw, EL_BASIS, TW_BASIS, twZugang, ROOT } from '../lib/api.mjs';
+import { argumente, agentKonfig, el, tw, EL_BASIS, TW_BASIS, twZugang, fremderAgent, ROOT } from '../lib/api.mjs';
 
 const VORLAGE = join(ROOT, 'make', 'mitschneider.blueprint.json');
 const LOKAL = join(ROOT, 'make', 'mitschneider.local.json');
 const LIVE = join(ROOT, 'make', 'mitschneider.live.json');
 const EXPORT = join(ROOT, 'make', 'mitschneider.import.json');
+const KONTEXT_VORLAGE = join(ROOT, 'make', 'kontext.blueprint.json');
+const KONTEXT_LOKAL = join(ROOT, 'make', 'kontext.local.json');
+const KONTEXT_EXPORT = join(ROOT, 'make', 'kontext.import.json');
 
 const { pos, opt } = argumente();
 const befehl = pos[0];
@@ -74,11 +81,11 @@ function werte(k) {
   };
 }
 
-function fuellen(w, { ohneSchluessel = false } = {}) {
-  let text = readFileSync(VORLAGE, 'utf8');
+function fuellen(w, { ohneSchluessel = false, vorlage = VORLAGE } = {}) {
+  let text = readFileSync(vorlage, 'utf8');
   const fehlt = new Set();
   // Zahlen-IDs ohne Anführungszeichen einsetzen, alles andere als Text.
-  text = text.replace(/"%%(HOOK_ID|ELEVENLABS_KEY_ID|MAIL_VERBINDUNG_ID|TWILIO_KEY_ID)%%"/g, (_, n) => {
+  text = text.replace(/"%%(HOOK_ID|ELEVENLABS_KEY_ID|MAIL_VERBINDUNG_ID|TWILIO_KEY_ID|DATASTORE_ID)%%"/g, (_, n) => {
     // Beim Import wählt der Nutzer Webhook, Schlüssel und Mail-Verbindung in Make selbst aus.
     if (ohneSchluessel && !w[n]) return 'null';
     if (w[n] == null || w[n] === '') { fehlt.add(n); return '0'; }
@@ -121,14 +128,34 @@ async function exportieren() {
   console.log('Speichern, Szenario einschalten. Die Webhook-Adresse kommt dann als hook_url in make/mitschneider.local.json (für "nummer").');
 }
 
-// Werkzeug am Inbound-Bot: schickt das aufgenommene Anliegen an Weg 4 des Szenarios (Mail).
-async function werkzeug() {
-  const k = lokal();
-  if (!k.hook_url) throw new Error('hook_url fehlt in make/mitschneider.local.json (erst einspielen bzw. importieren)');
-  const agent = agentKonfig('inbound');
-  if (!agent.agent_id) throw new Error('Inbound-Agent fehlt (node skripte/anlegen.mjs inbound)');
-  const text = (beschreibung) => ({ type: 'string', description: beschreibung, dynamic_variable: '', constant_value: '', is_system_provided: false });
-  const system = (variable) => ({ type: 'string', description: '', dynamic_variable: variable, constant_value: '', is_system_provided: false });
+const kontextLokal = () => JSON.parse(readFileSync(KONTEXT_LOKAL, 'utf8'));
+const kontextSpeichern = k => writeFileSync(KONTEXT_LOKAL, JSON.stringify(k, null, 2) + '\n');
+
+// Anrufer-Kontext ohne Make-API: Datei zum Importieren. Webhook und Datenspeicher legt der Nutzer in Make an.
+function kontextExportieren() {
+  if (!existsSync(KONTEXT_LOKAL)) throw new Error('make/kontext.local.json fehlt (Vorlage: make/kontext.example.json)');
+  const k = kontextLokal();
+  const { blueprint, fehlt } = fuellen({
+    SZENARIO_NAME: k.szenario_name || 'Callbot Anrufer-Kontext',
+    HOOK_ID: k.hook_id,
+    DATASTORE_ID: k.datastore_id,
+    TAGE: Number(k.tage || 14),
+  }, { ohneSchluessel: true, vorlage: KONTEXT_VORLAGE });
+  if (fehlt.length) throw new Error('Werte fehlen: ' + fehlt.join(', '));
+  writeFileSync(KONTEXT_EXPORT, JSON.stringify(blueprint, null, 2) + '\n');
+  console.log('Geschrieben: make/kontext.import.json');
+  console.log('In Make: neues Szenario, "Blueprint importieren", Datei wählen.');
+  console.log('Im ersten Modul den Webhook wählen' + (k.hook_id ? '' : ' bzw. anlegen') + ', in den beiden Datenspeicher-Modulen den Datenspeicher'
+    + (k.datastore_id ? '' : ' (Felder: nummer Text, zeit Datum, titel Text, kurz Text, conversation_id Text)') + '.');
+  console.log('Speichern, Zeitplanung auf "sofort", einschalten. Webhook-Adresse als hook_url in make/kontext.local.json, dann make.mjs werkzeug.');
+}
+
+// Werkzeug-Parameter für ElevenLabs: vom Modell gefüllt bzw. aus einer Variablen.
+const text = (beschreibung) => ({ type: 'string', description: beschreibung, dynamic_variable: '', constant_value: '', is_system_provided: false });
+const system = (variable) => ({ type: 'string', description: '', dynamic_variable: variable, constant_value: '', is_system_provided: false });
+
+// Werkzeuge für den Mitschneider: Anliegen per Mail (Weg 4) und Durchstellen über Make.
+function mitschneiderWerkzeuge(k, agent) {
   const tool_config = {
     type: 'webhook',
     name: 'anliegen_senden',
@@ -177,28 +204,82 @@ async function werkzeug() {
     },
   };
 
-  const ids = [];
-  for (const [schluessel, konfig] of [['anliegen_tool_id', tool_config], ['durchstellen_tool_id', durchstellen]]) {
-    let id = k[schluessel];
-    if (id) {
-      await el('/v1/convai/tools/' + id, { method: 'PATCH', body: { tool_config: konfig } });
-      console.log(`Werkzeug ${konfig.name} aktualisiert: ${id}`);
-    } else {
-      const r = await el('/v1/convai/tools', { method: 'POST', body: { tool_config: konfig } });
-      id = r.id; k[schluessel] = id; speichern(k);
-      console.log(`Werkzeug ${konfig.name} angelegt: ${id}`);
-    }
-    ids.push(id);
+  return [['anliegen_tool_id', tool_config], ['durchstellen_tool_id', durchstellen]];
+}
+
+// Werkzeug für Rückrufe: Wer hat diese Nummer zuletzt angerufen und warum? Fragt das Kontext-Szenario ab.
+function kontextWerkzeug(k, agent) {
+  const tage = Number(k.tage || 14);
+  const wer = agent.im_auftrag_von || 'die Person, für die du telefonierst';
+  return {
+    type: 'webhook',
+    name: 'anrufer_kontext',
+    description: `Schlägt nach, ob in den letzten ${tage} Tagen im Auftrag von ${wer} bei dieser Nummer angerufen wurde und worum es ging. `
+      + 'Aufrufen, sobald der Anrufer sagt, er sei angerufen worden oder rufe zurück, oder fragt, wer ihn angerufen hat. '
+      + 'Nenne dann kurz Anlass und Zeitpunkt, keine weiteren Details. Gibt es keinen Treffer, sag das ehrlich und nimm das Anliegen auf.',
+    response_timeout_secs: 15,
+    api_schema: {
+      url: k.hook_url + '?step=abfragen',
+      method: 'POST',
+      request_headers: {},
+      request_body_schema: {
+        type: 'object',
+        description: 'Nummer des Anrufers.',
+        required: ['anrufer'],
+        properties: { anrufer: system('system__caller_id') },
+      },
+    },
+  };
+}
+
+// Legt ein Werkzeug an bzw. aktualisiert es; die ID merkt sich die lokale Datei unter `schluessel`.
+async function werkzeugAblegen(k, schluessel, konfig, sichern) {
+  let id = k[schluessel];
+  if (id) {
+    await el('/v1/convai/tools/' + id, { method: 'PATCH', body: { tool_config: konfig } });
+    console.log(`Werkzeug ${konfig.name} aktualisiert: ${id}`);
+  } else {
+    const r = await el('/v1/convai/tools', { method: 'POST', body: { tool_config: konfig } });
+    id = r.id; k[schluessel] = id; sichern(k);
+    console.log(`Werkzeug ${konfig.name} angelegt: ${id}`);
   }
+  return id;
+}
+
+// Hängt die Werkzeuge an den Inbound-Bot, je nachdem, welche Szenarien eingerichtet sind.
+// Bestehender Agent (modus live): nur anrufer_kontext dazu, sonst bleibt alles, wie es ist.
+async function werkzeug() {
+  const agent = agentKonfig('inbound');
+  if (!agent.agent_id) throw new Error('Inbound-Agent fehlt (node skripte/anlegen.mjs inbound bzw. konfig.mjs --agent …)');
+  const mit = existsSync(LOKAL) ? lokal() : null;
+  const kon = existsSync(KONTEXT_LOKAL) ? kontextLokal() : null;
+  if (!mit?.hook_url && !kon?.hook_url) throw new Error('Kein Szenario mit hook_url: make/mitschneider.local.json bzw. make/kontext.local.json');
+
+  const ids = [];
+  let mitschneider = false;
+  if (mit?.hook_url) {
+    if (fremderAgent(agent)) {
+      console.log(`Mitschneider-Werkzeuge übersprungen: "${agent.name}" ist ein bestehender Agent, seine Weiterleitung bleibt unverändert.`);
+    } else {
+      for (const [schluessel, konfig] of mitschneiderWerkzeuge(mit, agent)) ids.push(await werkzeugAblegen(mit, schluessel, konfig, speichern));
+      mitschneider = true;
+    }
+  }
+  if (kon?.hook_url) ids.push(await werkzeugAblegen(kon, 'tool_id', kontextWerkzeug(kon, agent), kontextSpeichern));
+
   const a = await el('/v1/convai/agents/' + agent.agent_id);
   const vorhanden = a.conversation_config.agent.prompt.tool_ids || [];
-  const bt = a.conversation_config.agent.prompt.built_in_tools || {};
-  await el('/v1/convai/agents/' + agent.agent_id, { method: 'PATCH', body: { conversation_config: { agent: {
-    prompt: { tool_ids: [...new Set([...vorhanden, ...ids])], built_in_tools: { ...bt, transfer_to_number: null } },
+  const neu = ids.filter(id => !vorhanden.includes(id));
+  if (!neu.length && !mitschneider) { console.log(`"${a.name}": Werkzeuge sind schon eingehängt.`); return; }
+  const prompt = { tool_ids: [...vorhanden, ...neu] };
+  const agentTeil = { prompt };
+  if (mitschneider) {
+    prompt.built_in_tools = { ...(a.conversation_config.agent.prompt.built_in_tools || {}), transfer_to_number: null };
     // Make liefert beide Werte bei jedem Anruf mit; die Vorgaben greifen nur, falls nicht.
-    dynamic_variables: { dynamic_variable_placeholders: { ...(a.conversation_config.agent.dynamic_variables?.dynamic_variable_placeholders || {}), call_sid: '', durchstellen_erlaubt: 'nein' } },
-  } } } });
-  console.log('Inbound-Bot: Werkzeuge eingehängt, eingebaute Weiterleitung (transfer_to_number) entfernt.');
+    agentTeil.dynamic_variables = { dynamic_variable_placeholders: { ...(a.conversation_config.agent.dynamic_variables?.dynamic_variable_placeholders || {}), call_sid: '', durchstellen_erlaubt: 'nein' } };
+  }
+  await el('/v1/convai/agents/' + agent.agent_id, { method: 'PATCH', body: { conversation_config: { agent: agentTeil } } });
+  console.log(`"${a.name}": ${neu.length} Werkzeug(e) eingehängt${mitschneider ? ', eingebaute Weiterleitung (transfer_to_number) entfernt' : ''}.`);
 }
 
 async function einspielen() {
@@ -264,6 +345,8 @@ try {
     if (!mail.length) console.log('(keine eindeutige Mail-Verbindung gefunden, oben alle Verbindungen)');
   } else if (befehl === 'werkzeug') {
     await werkzeug();
+  } else if (befehl === 'kontext-export') {
+    kontextExportieren();
   } else if (befehl === 'holen') {
     const k = lokal();
     if (!k.scenario_id) throw new Error('Noch kein Szenario eingespielt');
@@ -295,7 +378,7 @@ try {
       console.log('Umgestellt.');
     }
   } else {
-    console.log('Aufruf: node skripte/make.mjs vorschau|einspielen|export|verbindungen|werkzeug|holen|nummer +49… [--ja]');
+    console.log('Aufruf: node skripte/make.mjs vorschau|einspielen|export|verbindungen|werkzeug|kontext-export|holen|nummer +49… [--ja]');
   }
 } catch (e) {
   console.error(e.message);

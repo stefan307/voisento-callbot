@@ -1,5 +1,6 @@
 ---
 titel: Schadensmeldung Kfz vorab aufnehmen lassen
+kurz: Kfz-Schaden vom 2. Oktober melden
 nummer: +49000000000
 gegenueber: Beispiel Versicherung AG, Schadenservice
 uebergabe: ja

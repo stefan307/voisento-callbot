@@ -21,6 +21,7 @@ Stand prüfen jederzeit mit `node skripte/pruefen.mjs`.
 | `node skripte/pruefen.mjs [--nur-outbound]` | Einrichtung prüfen (Schlüssel, Agenten, Nummer, Profil), ändert nichts |
 | `node skripte/nummer.mjs zuordnen` | Twilio-Nummer dem Inbound-Agenten zuordnen |
 | `node skripte/make.mjs export\|werkzeug\|nummer +49…` | Mitschneider: Szenario zum Import in Make erzeugen, Bot anbinden, Nummer umstellen (optional mit Make-API: `einspielen`, `holen`, `verbindungen`) |
+| `node skripte/make.mjs kontext-export` | Anrufer-Kontext: Szenario zum Import; Bot weiß bei Rückrufen, wer zuletzt angerufen hat (`werkzeug` hängt es an) |
 | `node skripte/anlegen.mjs inbound\|outbound` | Agent einmalig in ElevenLabs anlegen (Werkzeuge, Datenerfassung, Stimme) |
 
 ## Stand

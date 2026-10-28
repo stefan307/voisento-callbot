@@ -198,6 +198,29 @@ in `.env` (Rechte siehe `.env.example`) kann `node skripte/make.mjs einspielen` 
 selbst anlegen bzw. aktualisieren und aktivieren; `make.mjs verbindungen` listet die Mail-Verbindungen mit ID,
 `make.mjs holen` den aktuellen Stand. Was in der lokalen Datei schon steht, legt `einspielen` nicht neu an.
 
+## Schritt 10b (optional): Anrufer-Kontext für Rückrufe
+
+Ruft jemand zurück, den der Outbound-Bot angerufen hat, weiß der Inbound-Bot sonst nicht, worum es ging. Mit diesem
+kleinen Make-Szenario vermerkt `anruf.mjs` jeden Anruf, und der Bot schlägt bei einem Rückruf nach. Funktioniert auch
+auf dem Override-Weg, dort bekommt der bestehende Agent nur dieses eine Werkzeug dazu, sonst ändert sich nichts.
+Braucht ein Make-Konto (Free reicht, ein aktives Szenario), keinen Mitschneider.
+
+1. `make/kontext.example.json` nach `make/kontext.local.json` kopieren.
+2. Der Mensch legt in Make an:
+   - einen **Datenspeicher** (Data store), z. B. „Callbot Anrufe“, mit einer neuen Datenstruktur mit den Feldern
+     `nummer` (Text), `zeit` (Datum), `titel` (Text), `kurz` (Text), `conversation_id` (Text);
+   - einen **Webhook** (Custom webhook), z. B. „callbot_kontext“. Die Adresse kommt als `hook_url` in die lokale Datei.
+   Kennst du die IDs (Make-Connector), trag `hook_id` und `datastore_id` ein, dann sind sie beim Import schon gewählt.
+3. `node skripte/make.mjs kontext-export` schreibt `make/kontext.import.json`. Er importiert sie als neues Szenario,
+   wählt Webhook und Datenspeicher (in beiden Datenspeicher-Modulen), stellt die Zeitplanung auf „sofort“ und schaltet
+   es ein.
+4. `node skripte/make.mjs werkzeug` legt das Werkzeug `anrufer_kontext` an und hängt es an den Inbound-Agenten.
+   Auf dem Override-Weg vorher fragen, denn das ist eine Änderung an seinem laufenden Bot (nur ein Werkzeug mehr).
+5. **Prüfen ohne Anruf** (mit Node, nicht aus der Shell): `?step=eintragen` mit `nummer`, `titel`, `kurz`,
+   `conversation_id` → Antwort `{"status":"ok"}`; danach `?step=abfragen` mit `anrufer` = dieselbe Nummer → Text mit
+   dem Eintrag. Antwortet der Webhook nur „Accepted“, steht die Zeitplanung nicht auf „sofort“.
+   Den Testeintrag danach in Make im Datenspeicher löschen.
+
 ## Schritt 11: Abschluss und Test
 
 1. `node skripte/pruefen.mjs` zeigt überall `OK`.

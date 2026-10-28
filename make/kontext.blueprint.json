@@ -1,0 +1,221 @@
+{
+  "name": "%%SZENARIO_NAME%%",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "mapper": {},
+      "parameters": {
+        "hook": "%%HOOK_ID%%",
+        "maxResults": 1
+      },
+      "metadata": {
+        "designer": {
+          "x": -600,
+          "y": 0,
+          "name": "Anruf eintragen (?step=eintragen) / Anrufer nachschlagen (?step=abfragen)"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "metadata": {
+        "designer": {
+          "x": -300,
+          "y": 0
+        }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "datastore:AddRecord",
+              "version": 1,
+              "filter": {
+                "name": "1 - Ausgehender Anruf von anruf.mjs",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.step}}",
+                      "b": "eintragen",
+                      "o": "text:equal"
+                    },
+                    {
+                      "a": "{{1.conversation_id}}",
+                      "o": "exist"
+                    }
+                  ]
+                ]
+              },
+              "parameters": {
+                "datastore": "%%DATASTORE_ID%%"
+              },
+              "mapper": {
+                "key": "{{1.conversation_id}}",
+                "overwrite": true,
+                "data": {
+                  "nummer": "{{1.nummer}}",
+                  "zeit": "{{now}}",
+                  "titel": "{{1.titel}}",
+                  "kurz": "{{1.kurz}}",
+                  "conversation_id": "{{1.conversation_id}}"
+                }
+              },
+              "metadata": {
+                "designer": {
+                  "x": 0,
+                  "y": -200,
+                  "name": "Anruf im Datenspeicher ablegen"
+                }
+              }
+            },
+            {
+              "id": 4,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "body": "{\"status\":\"ok\"}",
+                "headers": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 300,
+                  "y": -200,
+                  "name": "OK an anruf.mjs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 5,
+              "module": "datastore:SearchRecord",
+              "version": 1,
+              "filter": {
+                "name": "2 - Bot fragt nach der Anrufernummer",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.step}}",
+                      "b": "abfragen",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "parameters": {
+                "datastore": "%%DATASTORE_ID%%",
+                "continueWhenNoRes": true,
+                "limit": 5
+              },
+              "mapper": {
+                "filter": [
+                  [
+                    {
+                      "a": "nummer",
+                      "b": "{{1.anrufer}}",
+                      "o": "text:equal"
+                    },
+                    {
+                      "a": "zeit",
+                      "b": "{{addDays(now; -%%TAGE%%)}}",
+                      "o": "date:greater"
+                    }
+                  ]
+                ],
+                "sort": [
+                  {
+                    "key": "zeit",
+                    "order": -1
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 0,
+                  "y": 200,
+                  "name": "Anrufe an diese Nummer suchen"
+                }
+              }
+            },
+            {
+              "id": 6,
+              "module": "util:TextAggregator",
+              "version": 1,
+              "parameters": {
+                "feeder": 5,
+                "rowSeparator": "\n"
+              },
+              "mapper": {
+                "value": "{{if(5.conversation_id; \"- \" + formatDate(5.zeit; \"DD.MM.YYYY HH:mm\"; \"Europe/Berlin\") + \" Uhr: \" + 5.titel + if(5.kurz; \". \" + 5.kurz; \"\"); \"\")}}"
+              },
+              "metadata": {
+                "designer": {
+                  "x": 300,
+                  "y": 200,
+                  "name": "Treffer als Liste"
+                }
+              }
+            },
+            {
+              "id": 7,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "body": "{{if(trim(6.text); \"Ausgehende Anrufe an diese Nummer in den letzten %%TAGE%% Tagen (neueste zuerst):\" + newline + trim(6.text); \"In den letzten %%TAGE%% Tagen gab es keine ausgehenden Anrufe an diese Nummer.\")}}",
+                "headers": [
+                  {
+                    "key": "Content-Type",
+                    "value": "text/plain; charset=utf-8"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": 200,
+                  "name": "Antwort an den Bot"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}

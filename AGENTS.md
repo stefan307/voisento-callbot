@@ -56,6 +56,8 @@ Steht in `agenten/outbound/agent.json` → `modus`:
    - Als **Ziel + Spielraum** schreiben, nicht als Ablaufskript („Wunsch: morgen 10 Uhr. Okay ist alles zwischen 9:30 und 11.“).
      Wenn-dann-Regeln liest der Bot sonst fast wörtlich vor und klingt steif.
    - Annahmen, die der Nutzer nicht genannt hat (Tag, Name, Rückrufnummer …), vor dem Anruf ausdrücklich zeigen.
+   - `kurz`: ein Satz, worum es ging, ohne persönliche Daten. Ist der Anrufer-Kontext eingerichtet, hört das jeder,
+     der von dieser Nummer zurückruft (sonst nur der Titel).
 2. Vorschau zeigen: `node skripte/anruf.mjs <datei>`
 3. **Erst nach ausdrücklichem Ja des Nutzers** im Chat: `node skripte/anruf.mjs <datei> --ja`.
    Ein Ja gilt für genau diesen einen Anruf.
@@ -88,6 +90,13 @@ Rückfragen nur, wenn Nummer oder Anlass fehlen oder Daten herausgegeben werden 
 7. **Rückmeldung an den Nutzer** in wenigen Zeilen: Termin (Wochentag, Datum, Uhrzeit), was mitzubringen ist,
    ob eingetragen, Auffälligkeiten im Gespräch. Kein Termin vereinbart: angebotene Alternativen nennen, nichts eintragen.
 8. Status im Kopf der Auftragsdatei auf `erledigt` oder `offen` setzen.
+
+### Rückrufe (Anrufer-Kontext, optional)
+Ist `make/kontext.local.json` eingerichtet, vermerkt `anruf.mjs` jeden gestarteten Anruf (Nummer, Zeit, Titel, `kurz`,
+conversation_id) im Make-Datenspeicher. Ruft jemand von dort zurück, fragt der Inbound-Bot mit dem Werkzeug
+`anrufer_kontext` nach und erfährt, welche Anrufe es in den letzten 14 Tagen an diese Nummer gab.
+Meldet `anruf.mjs` „Anrufer-Kontext nicht vermerkt“, läuft der Anruf trotzdem. Dann dem Nutzer sagen, dass ein
+Rückruf ohne Kontext ankommt (meist steht die Zeitplanung des Szenarios nicht auf „sofort“).
 
 ### „Werte die Mitschnitte aus“ / „Was war im Gespräch mit …?“ (Mitschneider)
 Der Mitschneider (Make-Szenario aus `make/mitschneider.blueprint.json`) legt nichts ab. Aufnahmen liegen in Twilio:

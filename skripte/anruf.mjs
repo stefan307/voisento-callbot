@@ -11,7 +11,7 @@
 //     conversation_config_override (Prompt + leere erste Nachricht). Am Agenten selbst ändert sich nichts.
 //     Voraussetzung: Am Agenten ist das Überschreiben von Prompt und erster Nachricht erlaubt
 //     (node skripte/pruefen.mjs zeigt es).
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { el, argumente, agentKonfig, benoetigteVariablen, overrideFreigaben, ROOT } from '../lib/api.mjs';
 import { lesen, kopfSetzen } from '../lib/auftrag.mjs';
@@ -109,6 +109,27 @@ if (override) {
 if (bereit && !opt.ja) console.log('Nur Vorschau. Mit --ja wird wirklich angerufen.');
 else if (bereit) await anrufen();
 
+// Anrufer-Kontext (make/kontext.local.json): den Anruf vermerken, damit der Inbound-Bot bei einem Rückruf weiß,
+// worum es ging. Nur Titel und die Kopfzeile "kurz", nie den Auftragstext: den hört jeder, der von dort anruft.
+async function kontextEintragen(conversation_id) {
+  const pfad = join(ROOT, 'make', 'kontext.local.json');
+  if (!existsSync(pfad)) return;
+  const { hook_url } = JSON.parse(readFileSync(pfad, 'utf8'));
+  if (!hook_url) return;
+  try {
+    const res = await fetch(hook_url + '?step=eintragen', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ nummer: kopf.nummer, titel: kopf.titel, kurz: kopf.kurz || '', conversation_id }),
+    });
+    const antwort = await res.text();
+    if (!res.ok || !/ok/.test(antwort)) throw new Error(`${res.status} ${antwort.slice(0, 100)}`);
+    console.log('Für Rückrufe vermerkt (Anrufer-Kontext).');
+  } catch (e) {
+    console.error(`Hinweis: Anrufer-Kontext nicht vermerkt (${e.message}). Der Anruf selbst läuft.`);
+  }
+}
+
 async function anrufen() {
   if (opt.um) {
     const m = String(opt.um).match(/^(\d{1,2}):(\d{2})$/);
@@ -129,6 +150,7 @@ async function anrufen() {
     kopfSetzen(datei, { status: 'angerufen', conversation_id: r.conversation_id, call_sid: r.callSid || '', gestartet: new Date().toISOString() });
     console.log(`Anruf läuft: ${r.conversation_id}`);
     console.log(`Ergebnis nach dem Auflegen: node skripte/gespraeche.mjs zeige ${r.conversation_id}`);
+    await kontextEintragen(r.conversation_id);
   } catch (e) {
     kopfSetzen(datei, { status: 'fehler', fehler: JSON.stringify(e.message.slice(0, 200)) });
     console.error(e.message);

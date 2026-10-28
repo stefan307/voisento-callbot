@@ -109,6 +109,10 @@ Schritt 4 heraus: die Fehlermeldung nennt dann den falschen Server.
 | fehlende Berechtigung / missing permission | Schlüssel stimmt, ein Recht aus Schritt 3 fehlt |
 | Twilio lehnt ab | Schlüssel aus einer anderen Region als `TWILIO_API_BASE`, oder Secret falsch |
 
+Außerdem vorab klären: Ist das Twilio-Konto noch ein **Testkonto** (Trial), ruft es nur bei Nummern an, die in Twilio
+als verifiziert eingetragen sind, und vor jedem Gespräch läuft eine Twilio-Ansage. Für echte Aufträge muss das Konto
+aufgeladen sein (Upgrade). Zum Testen reicht es, die eigene zweite Nummer in Twilio zu verifizieren.
+
 Die Punkte zu Agenten, Nummer und Profil sind jetzt noch offen, das ist richtig.
 
 ## Schritt 5: Nummer in ElevenLabs

@@ -20,7 +20,8 @@ const { pos, opt } = argumente();
 const datei = pos[0];
 if (!datei) { console.log('Aufruf: node skripte/anruf.mjs <auftragsdatei> [--ja]'); process.exit(1); }
 
-const agent = agentKonfig('outbound');
+let agent;
+try { agent = agentKonfig('outbound'); } catch (e) { console.error(e.message); process.exit(1); }
 const override = agent.modus === 'override';
 const { kopf, text } = lesen(datei);
 
@@ -68,6 +69,17 @@ async function overrideVorbereiten() {
 `
         + 'In ElevenLabs bei diesem Agenten das Überschreiben von System-Prompt und erster Nachricht erlauben, dann erneut versuchen.');
     }
+    // Übergabe läuft über das transfer_to_number des bestehenden Agenten, also an dessen eingestellte Ziele.
+    // Fehlt das Werkzeug, darf der Bot keine Übergabe anbieten, die er nicht kann.
+    const ziele = (live.conversation_config?.agent?.prompt?.built_in_tools?.transfer_to_number?.params?.transfers || [])
+      .map(t => t.transfer_destination?.phone_number || t.phone_number || t.transfer_destination?.sip_uri).filter(Boolean);
+    if (uebergabe && !ziele.length) {
+      variablen.uebergabe_erlaubt = 'nein';
+      console.log('Achtung: Der Agent hat kein Übergabe-Werkzeug (transfer_to_number). Übergabe für diesen Anruf abgeschaltet.');
+    } else if (uebergabe) {
+      console.log(`Übergabe geht an das, was am Agenten eingestellt ist: ${ziele.join(', ')}. Ist das nicht ${agent.im_auftrag_von}, Ziel in ElevenLabs prüfen.`);
+    }
+
     // Prompt aus dem Repo mit dem Auftrag füllen; {{system__…}} setzt ElevenLabs selbst ein.
     const vorlage = readFileSync(join(ROOT, 'agenten', 'outbound', 'prompt.md'), 'utf8').replace(/\r\n/g, '\n').trim();
     const offen = new Set();

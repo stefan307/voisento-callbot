@@ -36,14 +36,34 @@ Fasse dem Menschen in wenigen Zeilen zusammen, was vorhanden ist und was fehlt.
 Fehlt Node oder Git, frag, ob du es installieren sollst (unter Windows z. B. `winget install OpenJS.NodeJS.LTS`).
 Es gibt keine npm-Abhängigkeiten.
 
-## Schritt 2: Konten klären
+## Schritt 2: Umfang und Konten klären
+
+**Erst fragen, was installiert werden soll.** Inbound- und Outbound-Bot gehören immer dazu. Dazu zwei Bausteine,
+die du ausdrücklich mit **ja oder nein** abfragst (in einer Nachricht, jeweils mit einem Satz Erklärung):
+- **Mitschneider installieren?** Anrufe auf einer eigenen Nummer laufen über Make: Anrufer landen beim Bot oder
+  werden mit Aufnahme an ihn weitergeleitet, und er kann Gespräche per Konferenz still mitschneiden lassen.
+  Braucht Make, ein Mail-Postfach und eine eigene Twilio-Nummer.
+- **Anrufer-Kontext installieren?** Ruft jemand zurück, den der Outbound-Bot angerufen hat, weiß der Inbound-Bot,
+  worum es ging. Braucht nur Make.
+
+Ohne klares Ja gilt nein. Die Antwort hältst du so fest:
+- **Mitschneider ja:** `make/mitschneider.example.json` gleich jetzt nach `make/mitschneider.local.json` kopieren.
+  Schritt 10 wird gemacht.
+- **Anrufer-Kontext ja:** `make/kontext.example.json` nach `make/kontext.local.json` kopieren. Schritt 10b wird gemacht.
+- **Nein:** keine Datei anlegen, den Schritt überspringen und nicht nach Make, Postfach oder Zusatznummer fragen.
+  Steht der Baustein schon auf „ja“ (Datei vorhanden) und er will ihn nicht mehr, Datei erst nach Rückfrage löschen.
+
+Die Dateien sind der Merker für spätere Sitzungen: `pruefen.mjs` meldet einen gewählten, aber noch nicht fertig
+eingerichteten Baustein als offen. Will er später doch einen Baustein, Datei anlegen und den Schritt nachholen.
 
 Der Mensch braucht:
 - ein **ElevenLabs-Konto** mit Zugang zu ElevenLabs Agents;
 - ein **Twilio-Konto** mit einer Telefonnummer, die Anrufe annehmen und tätigen kann.
 
-Nur für den Mitschneider (Schritt 10, optional) zusätzlich:
-- ein **Make-Konto** (Free reicht zum Testen, siehe Schritt 10);
+Nur wenn Mitschneider oder Anrufer-Kontext gewählt ist:
+- ein **Make-Konto** (Free reicht, siehe Schritt 10; beide Bausteine zusammen passen in die 2 aktiven Szenarien).
+
+Nur für den Mitschneider zusätzlich:
 - ein **Postfach, aus dem Make Mails verschicken darf** (SMTP, Gmail oder Microsoft 365). Darüber gehen die
   aufgenommenen Anliegen raus. Er legt es in Make selbst als Verbindung an, weil dafür eine Anmeldung nötig ist;
 - eine **Empfänger-Adresse** für diese Mails (meist seine eigene);
@@ -150,7 +170,8 @@ Ohne Kalender funktioniert alles andere. Den Spielraum für Termine fragst du da
 
 ## Schritt 10 (optional): Mitschneider über Make
 
-Nur wenn der Mensch eingehende Anrufe über eine eigene Nummer laufen lassen will:
+Nur wenn er in Schritt 2 „ja“ gesagt hat (`make/mitschneider.local.json` existiert), sonst weiter mit Schritt 10b.
+Der Mitschneider macht:
 - Anrufer → Inbound-Bot (Hinweis auf die Aufzeichnung, Anliegen aufnehmen, Mail);
 - will der Anrufer ihn sprechen → Weiterleitung an sein Handy mit Aufnahme; nicht abgenommen → zurück zum Bot;
 - holt er die Nummer selbst per Konferenz dazu → stummer Mitschnitt.
@@ -159,8 +180,7 @@ Voraussetzungen siehe Schritt 2 (Make-Konto, Postfach als Mail-Verbindung in Mak
 Eingerichtet wird **über die Make-Oberfläche per Import**. Das geht in jedem Make-Tarif, auch im Free-Plan
 (dort 2 aktive Szenarien und 1.000 Credits im Monat, reicht zum Testen und für einige hundert Anrufe).
 
-1. **Werte festlegen:** `make/mitschneider.example.json` nach `make/mitschneider.local.json` kopieren und mit ihm
-   ausfüllen: `weiterleiten_an` (sein Handy), `eigene_nummern` (von dort nur mitschneiden), `mail_an`, Ansagetexte.
+1. **Werte festlegen:** `make/mitschneider.local.json` (in Schritt 2 angelegt) mit ihm ausfüllen: `weiterleiten_an` (sein Handy), `eigene_nummern` (von dort nur mitschneiden), `mail_an`, Ansagetexte.
    Wichtig: Holt er die Nummer per Konferenz dazu, hört die Ansage nur er selbst, nicht sein Gesprächspartner
    (Twilio sieht nur seine Leitung und erkennt das Zusammenführen nicht). Den Hinweis auf die Aufzeichnung gibt er
    seinem Gesprächspartner deshalb selbst, bevor er die Nummer dazuholt. Die Ansage ist nur seine Bestätigung.
@@ -204,8 +224,9 @@ Ruft jemand zurück, den der Outbound-Bot angerufen hat, weiß der Inbound-Bot s
 kleinen Make-Szenario vermerkt `anruf.mjs` jeden Anruf, und der Bot schlägt bei einem Rückruf nach. Funktioniert auch
 auf dem Override-Weg, dort bekommt der bestehende Agent nur dieses eine Werkzeug dazu, sonst ändert sich nichts.
 Braucht ein Make-Konto (Free reicht, ein aktives Szenario), keinen Mitschneider.
+Nur wenn er in Schritt 2 „ja“ gesagt hat (`make/kontext.local.json` existiert), sonst weiter mit Schritt 11.
 
-1. `make/kontext.example.json` nach `make/kontext.local.json` kopieren.
+1. `make/kontext.local.json` wurde in Schritt 2 angelegt.
 2. Der Mensch legt in Make an:
    - einen **Datenspeicher** (Data store), z. B. „Callbot Anrufe“, mit einer neuen Datenstruktur mit den Feldern
      `nummer` (Text), `zeit` (Datum), `titel` (Text), `kurz` (Text), `conversation_id` (Text);

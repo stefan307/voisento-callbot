@@ -5,7 +5,7 @@
 // Jede Zeile beginnt mit OK, FEHLT, FEHLER oder HINWEIS. Nur FEHLT und FEHLER zählen als offen.
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { el, tw, twZugang, elKey, agentKonfigPfad, argumente, benoetigteVariablen, overrideFreigaben, EL_BASIS, TW_BASIS, ROOT } from '../lib/api.mjs';
+import { el, tw, twZugang, elKey, agentKonfigPfad, argumente, benoetigteVariablen, overrideFreigaben, fremderAgent, EL_BASIS, TW_BASIS, ROOT } from '../lib/api.mjs';
 
 const { opt } = argumente();
 let fehler = 0;
@@ -134,6 +134,28 @@ if (twOk && nummerMeta?.phone_number) {
     kaputt(`Twilio Voice-URL zeigt auf ${n.voice_url || 'nichts'}, erwartet ElevenLabs. Nummer in ElevenLabs (neu) importieren`);
   }
 }
+
+// Optionale Bausteine: Die lokale Datei ist die Antwort aus INSTALL.md Schritt 2 (vorhanden = ja).
+const kontext = existsSync(join(ROOT, 'make', 'kontext.local.json'))
+  ? JSON.parse(readFileSync(join(ROOT, 'make', 'kontext.local.json'), 'utf8')) : null;
+let inboundWerkzeuge = null;
+const werkzeugeAmInbound = async () => {
+  if (inboundWerkzeuge === null) {
+    inboundWerkzeuge = elOk && inbound?.agent_id
+      ? (await el('/v1/convai/agents/' + inbound.agent_id).catch(() => null))?.conversation_config?.agent?.prompt?.tool_ids || []
+      : [];
+  }
+  return inboundWerkzeuge;
+};
+if (!mitschnitt) hinweis('Mitschneider: nicht gewählt (nachholen: INSTALL.md Schritt 2 und 10)');
+else if (!mitschnitt.hook_url) fehlt('Mitschneider gewählt, aber noch nicht eingerichtet: hook_url fehlt in make/mitschneider.local.json (INSTALL.md Schritt 10)');
+else if (fremderAgent(inbound)) ok('Mitschneider: Szenario eingetragen (Werkzeuge am bestehenden Agenten bleiben unverändert)');
+else if (!mitschnitt.anliegen_tool_id || !(await werkzeugeAmInbound()).includes(mitschnitt.anliegen_tool_id)) fehlt('Mitschneider: Werkzeuge noch nicht am Inbound-Bot: node skripte/make.mjs werkzeug');
+else ok('Mitschneider: Szenario eingetragen, Werkzeuge am Inbound-Bot');
+if (!kontext) hinweis('Anrufer-Kontext: nicht gewählt (nachholen: INSTALL.md Schritt 2 und 10b)');
+else if (!kontext.hook_url) fehlt('Anrufer-Kontext gewählt, aber noch nicht eingerichtet: hook_url fehlt in make/kontext.local.json (INSTALL.md Schritt 10b)');
+else if (!kontext.tool_id || !(await werkzeugeAmInbound()).includes(kontext.tool_id)) fehlt('Anrufer-Kontext: Werkzeug noch nicht am Inbound-Bot: node skripte/make.mjs werkzeug');
+else ok('Anrufer-Kontext: Szenario eingetragen, Werkzeug anrufer_kontext am Inbound-Bot');
 
 if (existsSync(join(ROOT, 'profil.local.md'))) ok('profil.local.md vorhanden');
 else hinweis('profil.local.md fehlt (Stammdaten für Aufträge, Vorlage: profil.local.example.md); der KI-Agent fragt dann pro Auftrag nach');

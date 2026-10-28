@@ -161,7 +161,7 @@
                 "rowSeparator": "\n"
               },
               "mapper": {
-                "value": "{{if(5.conversation_id; \"- \" + formatDate(5.zeit; \"DD.MM.YYYY HH:mm\"; \"Europe/Berlin\") + \" Uhr: \" + 5.titel + if(5.kurz; \". \" + 5.kurz; \"\"); \"\")}}"
+                "value": "{{if(5.data.conversation_id; \"- \" + formatDate(5.data.zeit; \"DD.MM.YYYY HH:mm\"; \"Europe/Berlin\") + \" Uhr: \" + 5.data.titel + if(5.data.kurz; \". \" + 5.data.kurz; \"\"); \"\")}}"
               },
               "metadata": {
                 "designer": {

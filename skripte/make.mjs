@@ -197,7 +197,9 @@ function mitschneiderWerkzeuge(k, agent) {
         description: 'Daten zum Durchstellen.',
         required: ['call_sid', 'zusammenfassung'],
         properties: {
-          call_sid: system('call_sid'),
+          // Systemvariable statt eigener: ElevenLabs setzt sie bei jedem Telefonanruf, auch ohne Make davor.
+          // Eine eigene Variable müsste jeder Anruf mitbringen, sonst bricht ElevenLabs ihn sofort ab.
+          call_sid: system('system__call_sid'),
           zusammenfassung: text('Ein Satz: wer anruft und worum es geht.'),
         },
       },
@@ -275,8 +277,8 @@ async function werkzeug() {
   const agentTeil = { prompt };
   if (mitschneider) {
     prompt.built_in_tools = { ...(a.conversation_config.agent.prompt.built_in_tools || {}), transfer_to_number: null };
-    // Make liefert beide Werte bei jedem Anruf mit; die Vorgaben greifen nur, falls nicht.
-    agentTeil.dynamic_variables = { dynamic_variable_placeholders: { ...(a.conversation_config.agent.dynamic_variables?.dynamic_variable_placeholders || {}), call_sid: '', durchstellen_erlaubt: 'nein' } };
+    // Make liefert den Wert bei jedem Anruf mit; die Vorgabe greift nur, falls nicht (z. B. Nummer direkt bei ElevenLabs).
+    agentTeil.dynamic_variables = { dynamic_variable_placeholders: { ...(a.conversation_config.agent.dynamic_variables?.dynamic_variable_placeholders || {}), durchstellen_erlaubt: 'nein' } };
   }
   await el('/v1/convai/agents/' + agent.agent_id, { method: 'PATCH', body: { conversation_config: { agent: agentTeil } } });
   console.log(`"${a.name}": ${neu.length} Werkzeug(e) eingehängt${mitschneider ? ', eingebaute Weiterleitung (transfer_to_number) entfernt' : ''}.`);

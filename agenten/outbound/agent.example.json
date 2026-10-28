@@ -1,4 +1,5 @@
 {
+  "modus": "eigen",
   "name": "Callbot_out",
   "agent_id": null,
   "phone_number_id": null,
@@ -6,5 +7,6 @@
   "phone_number": "+49…",
   "uebergabe_nummer": "+49…",
   "llm": "gemini-3.5-flash",
-  "voice_id": null
+  "voice_id": null,
+  "variablen": {}
 }

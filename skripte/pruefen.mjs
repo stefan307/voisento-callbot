@@ -136,7 +136,7 @@ if (twOk && nummerMeta?.phone_number) {
 }
 
 if (existsSync(join(ROOT, 'profil.local.md'))) ok('profil.local.md vorhanden');
-else hinweis('profil.local.md fehlt (Stammdaten für Aufträge, Vorlage: profil.local.example.md); Claude fragt dann pro Auftrag nach');
+else hinweis('profil.local.md fehlt (Stammdaten für Aufträge, Vorlage: profil.local.example.md); der KI-Agent fragt dann pro Auftrag nach');
 
 console.log(fehler ? `\n${fehler} Punkt(e) offen.` : '\nAlles eingerichtet.');
 process.exitCode = fehler ? 1 : 0;

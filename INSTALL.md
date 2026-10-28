@@ -1,6 +1,6 @@
-# Installation – Anleitung für Claude
+# Installation – Anleitung für KI-Agenten
 
-Diese Datei ist für dich, Claude. Der Mensch sagt etwa: „Nimm das Repo und installier das.“
+Diese Datei ist für dich, KI-Agent (Claude Code, Codex, Cursor …). Der Mensch sagt etwa: „Nimm das Repo und installier das.“
 Du richtest die beiden Telefonbots in **seinen eigenen Konten** ein (ElevenLabs, Twilio, Kalender) und gehst
 die Schritte **der Reihe nach** mit ihm durch. Nach jedem Schritt prüfst du, ob er geklappt hat, und gehst erst dann
 weiter. Am Ende muss `node skripte/pruefen.mjs` überall `OK` zeigen.
@@ -17,6 +17,10 @@ weiter. Am Ende muss `node skripte/pruefen.mjs` überall `OK` zeigen.
   Beschreib, was gesucht wird, und schau bei Bedarf gemeinsam im Browser nach.
 - Ein Testanruf geht nach außen und kostet Geld: nur nach ausdrücklichem „los“.
 - Frag gebündelt: lieber eine Nachricht mit drei Fragen als drei Nachrichten.
+- Die Skripte brauchen Internet (ElevenLabs, Twilio). Läufst du in einer Sandbox ohne Netz (z. B. Codex im Standard),
+  scheitern sie mit „fetch failed“. Dann Netzfreigabe bestätigen oder den Menschen bitten, Codex mit
+  `codex -c 'sandbox_workspace_write.network_access=true'` neu zu starten. Mehr in [AGENTS.md](AGENTS.md) unter
+  „Hinweise je Werkzeug“.
 
 ## Schritt 1: Erst nachsehen, was schon da ist
 
@@ -24,8 +28,9 @@ Bevor du fragst, prüfe selbst:
 - `node --version` (nötig: 22 oder neuer, empfohlen 24) und `git --version`.
 - Ob das Repo schon lokal liegt und ob es `.env`, `agenten/*/agent.json` oder `profil.local.md` schon gibt.
   Gibt es sie, `node skripte/pruefen.mjs` ausführen und nur die offenen Punkte angehen.
-- Welche Werkzeuge du in dieser Sitzung hast: einen **Kalender-Connector** (z. B. Google Calendar) und einen
-  **ElevenLabs-Connector**. Teste den Kalender mit einer harmlosen Leseabfrage (freie Zeiten der nächsten Woche).
+- Welche Werkzeuge du in dieser Sitzung hast, z. B. einen **Kalender-Connector** (Google Calendar) oder einen
+  **ElevenLabs-Connector**. Beide sind optional. Gibt es einen Kalender, teste ihn mit einer harmlosen Leseabfrage
+  (freie Zeiten der nächsten Woche).
 
 Fasse dem Menschen in wenigen Zeilen zusammen, was vorhanden ist und was fehlt.
 Fehlt Node oder Git, frag, ob du es installieren sollst (unter Windows z. B. `winget install OpenJS.NodeJS.LTS`).
@@ -45,7 +50,11 @@ Nur für den Mitschneider (Schritt 10, optional) zusätzlich:
 - eine **eigene Twilio-Nummer** nur für den Mitschneider.
 
 Frag, ob das schon existiert. Wenn nicht: Er legt es selbst an, du legst keine Konten an.
-Frag außerdem, ob sein ElevenLabs-Konto auf einem **Data-Residency-Server** liegt (z. B. EU) und in welcher
+Frag außerdem, ob auf seiner Nummer **schon ein Bot läuft**, den er in ElevenLabs gebaut hat und der bleiben soll.
+Dann nimmst du den **Override-Weg**: Es wird kein Agent angelegt, ausgehende Anrufe laufen über seinen bestehenden
+Agenten (siehe [AGENTS.md](AGENTS.md), „Zwei Betriebsarten“). Schritt 6 und 7 sehen dann anders aus, steht jeweils dort.
+
+Und frag, ob sein ElevenLabs-Konto auf einem **Data-Residency-Server** liegt (z. B. EU) und in welcher
 **Twilio-Region** die Nummer liegt (Standard US1, sonst z. B. Irland). Weiß er es nicht, findet `pruefen.mjs` es in
 Schritt 4 heraus: die Fehlermeldung nennt dann den falschen Server.
 
@@ -87,6 +96,7 @@ Die Punkte zu Agenten, Nummer und Profil sind jetzt noch offen, das ist richtig.
 Die Twilio-Nummer muss einmalig in ElevenLabs importiert werden. Das macht der Mensch in der ElevenLabs-Oberfläche
 bei den Telefonnummern (Anbieter Twilio, passende Region). Die Twilio-Zugangsdaten trägt er dort selbst ein.
 Ist die Nummer schon importiert und an einen anderen Agenten gebunden, frag, ob sie für die Bots umgehängt werden darf.
+Soll der dortige Bot bleiben, ist das der Override-Weg: nichts umhängen.
 
 ## Schritt 6: Name, Übergabe, Stimme
 
@@ -103,6 +113,18 @@ node skripte/konfig.mjs --name <Vorname> --nummer +49… --uebergabe +49… --st
 Das schreibt `agenten/inbound/agent.json` und `agenten/outbound/agent.json` und findet die ID der importierten Nummer.
 Den Vornamen setzen die Skripte selbst in die Prompts ein. In den Dateien im Repo musst du nichts ersetzen.
 
+**Override-Weg:** Stimme und Übergabe hat sein Agent schon, gefragt wird nur nach dem Vornamen. Dann:
+```
+node skripte/konfig.mjs --name <Vorname> --agent <agent_id oder Name des bestehenden Agenten>
+```
+Die Nummer findet das Skript selbst (die am Agenten hängt), sonst mit `--nummer +49…` angeben. Agent und Nummer
+bleiben unverändert. Danach `node skripte/pruefen.mjs`:
+- Steht dort, dass das Überschreiben von Prompt und erster Nachricht nicht erlaubt ist, schaltet der Mensch das in
+  der ElevenLabs-Oberfläche beim Agenten frei (Sicherheit/Overrides). Ohne das bricht jeder ausgehende Anruf ab.
+- Fehlen Werkzeuge wie Tastentöne oder Mailbox-Erkennung, ist das nur ein Hinweis. Er entscheidet, ob er sie ergänzt.
+- Nennt `pruefen.mjs` Variablen ohne festen Wert und braucht eines seiner Werkzeuge einen echten Wert, trägst du ihn
+  mit ihm in `agenten/outbound/agent.json` unter `variablen` ein.
+
 ## Schritt 7: Agenten anlegen
 
 ```
@@ -112,16 +134,18 @@ node skripte/nummer.mjs zuordnen
 ```
 Danach `node skripte/agent.mjs vergleich inbound` und `vergleich outbound`: beide müssen „gleich“ zeigen.
 
+**Override-Weg:** Schritt entfällt. Die Skripte verweigern hier ohnehin die Arbeit, damit sein Agent unangetastet bleibt.
+
 ## Schritt 8: Persönliche Stammdaten
 
 `profil.local.example.md` nach `profil.local.md` kopieren und den Menschen bitten, sie selbst auszufüllen:
 Name, Geburtsdatum, Adresse, E-Mail, Telefon. Nur Stammdaten. Krankenkasse, Vertragsnummern usw. werden pro Anruf
-abgefragt und nie gespeichert (siehe `CLAUDE.md`). Die E-Mail ist auch die Kalender-Adresse für Terminaufträge.
+abgefragt und nie gespeichert (siehe `AGENTS.md`). Die E-Mail ist auch die Kalender-Adresse für Terminaufträge.
 
 ## Schritt 9: Kalender
 
 Hast du in Schritt 1 einen Kalender-Connector gefunden und die Leseabfrage hat geklappt, ist nichts zu tun.
-Sonst: fragen, ob der Mensch einen Kalender verbinden möchte (in den Connector-Einstellungen von Claude).
+Sonst: fragen, ob der Mensch einen Kalender verbinden möchte (in den Connector- bzw. MCP-Einstellungen seines KI-Werkzeugs).
 Ohne Kalender funktioniert alles andere. Den Spielraum für Termine fragst du dann bei jedem Auftrag ab.
 
 ## Schritt 10 (optional): Mitschneider über Make
@@ -154,10 +178,10 @@ Eingerichtet wird **über die Make-Oberfläche per Import**. Das geht in jedem M
    Speichern, Szenario einschalten.
 5. **Zeitplanung prüfen:** Nach einem Import steht sie nicht mehr auf „sofort“ (immediately). Dann landen Anrufe in
    der Warteschlange und Twilio bekommt keine Anweisungen. Auf „sofort“ stellen und speichern.
-   Tipp: Kennt Claude die IDs von Schlüsseln und Verbindung (`elevenlabs_key_id`, `twilio_key_id`,
+   Tipp: Kennt der KI-Agent die IDs von Schlüsseln und Verbindung (`elevenlabs_key_id`, `twilio_key_id`,
    `mail_verbindung_id` in der lokalen Datei, z. B. per Make-Connector nachgesehen), sind sie beim nächsten Import
    schon vorausgewählt.
-6. **Bot anbinden:** `node skripte/make.mjs werkzeug` hängt die Werkzeuge `anliegen_senden` (Mail an `mail_an`) und
+6. **Bot anbinden** (nicht auf dem Override-Weg, sein Agent bleibt unverändert): `node skripte/make.mjs werkzeug` hängt die Werkzeuge `anliegen_senden` (Mail an `mail_an`) und
    `durchstellen` (über Make, mit Rückweg) an den Inbound-Bot und entfernt dessen eingebaute Weiterleitung.
 7. **Prüfen ohne Anruf:** nachgestellte Anfragen an den Webhook schicken, mit Node (aus der Shell gehen Umlaute kaputt):
    `?step=eingang` mit `From` = eigene Nummer → Antwort mit `<Start><Recording>`; mit fremder Nummer → TwiML von
@@ -181,5 +205,6 @@ selbst anlegen bzw. aktualisieren und aktivieren; `make.mjs verbindungen` listet
    `node skripte/gespraeche.mjs liste --agent inbound --max 1` und das Gespräch mit `zeige` öffnen.
 3. **Outbound**: Testauftrag nach dem Muster von `auftraege/BEISPIEL_versicherung.md` an eine **zweite Nummer des
    Menschen**. Die Übergabe geht an die Übergabenummer, deshalb braucht es ein anderes Telefon, z. B. Festnetz.
-   Zwei SIMs im selben Gerät blockieren sich. Erst nach „los“ starten, dann mit `warte` aufs Ende warten und auswerten.
+   Zwei SIMs im selben Gerät blockieren sich. Erst nach „los“ starten, dann mit `warte` aufs Ende warten (oder ohne Hintergrund-Ausführung: nach dem Auflegen
+   `zeige`) und auswerten. Auf dem Override-Weg ruft sein bestehender Agent an, mit dem Outbound-Prompt aus dem Repo.
 4. Ergebnis zusammenfassen: was läuft, was fehlt.

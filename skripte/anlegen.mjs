@@ -5,7 +5,7 @@
 // Ist schon eine agent_id eingetragen, passiert nichts. Prompt-Änderungen danach mit agent.mjs senden.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { el, argumente, agentKonfig, agentKonfigPfad, fuerAgent, ROOT } from '../lib/api.mjs';
+import { el, argumente, agentKonfig, agentKonfigPfad, fuerAgent, fremderAgent, sperreBeiFremdemAgent, ROOT } from '../lib/api.mjs';
 
 const { pos } = argumente();
 const name = pos[0];
@@ -14,6 +14,7 @@ if (!['inbound', 'outbound'].includes(name)) { console.log('Aufruf: node skripte
 const ordner = join(ROOT, 'agenten', name);
 const metaPfad = agentKonfigPfad(name);
 const meta = agentKonfig(name);
+if (fremderAgent(meta)) { sperreBeiFremdemAgent(meta, 'anlegen.mjs ' + name); process.exit(1); }
 if (meta.agent_id) { console.log(`Schon angelegt: ${meta.agent_id}`); process.exit(0); }
 
 if (!meta.voice_id) { console.error(`agenten/${name}/agent.json: voice_id fehlt (Stimme aussuchen, siehe INSTALL.md)`); process.exit(1); }

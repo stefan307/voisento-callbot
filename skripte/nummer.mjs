@@ -2,13 +2,15 @@
 //   node skripte/nummer.mjs zuordnen   → eingehende Anrufe gehen an den Inbound-Agenten
 // Neue Nummern werden einmalig in der ElevenLabs-Oberfläche importiert (Twilio);
 // die phone_number_id trägt danach skripte/konfig.mjs ein.
-import { el, argumente, agentKonfig } from '../lib/api.mjs';
+import { el, argumente, agentKonfig, sperreBeiFremdemAgent } from '../lib/api.mjs';
 
 const { pos } = argumente();
 const inbound = agentKonfig('inbound');
 
 try {
-  if (pos[0] === 'zuordnen') {
+  if (pos[0] === 'zuordnen' && sperreBeiFremdemAgent(inbound, 'nummer.mjs zuordnen')) {
+    // gesperrt, Meldung kommt aus sperreBeiFremdemAgent
+  } else if (pos[0] === 'zuordnen') {
     if (!inbound.agent_id || !inbound.phone_number_id) throw new Error('agent_id oder phone_number_id fehlt in agenten/inbound/agent.json');
     await el('/v1/convai/phone-numbers/' + inbound.phone_number_id, { method: 'PATCH', body: { agent_id: inbound.agent_id } });
     console.log(`${inbound.phone_number} → ${inbound.name}`);

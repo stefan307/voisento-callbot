@@ -5,7 +5,7 @@
 // agenten/<name>/agent.json braucht dafür eine agent_id (Agent einmal in ElevenLabs anlegen).
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { el, argumente, agentKonfig, fuerAgent, ausAgent, ROOT } from '../lib/api.mjs';
+import { el, argumente, agentKonfig, fuerAgent, ausAgent, fremderAgent, sperreBeiFremdemAgent, ROOT } from '../lib/api.mjs';
 
 const { pos } = argumente();
 const [befehl, name] = pos;
@@ -14,6 +14,9 @@ if (!befehl || !name) { console.log('Aufruf: vergleich|holen|senden <name>'); pr
 const ordner = join(ROOT, 'agenten', name);
 const meta = agentKonfig(name);
 if (!meta.agent_id) { console.error(`agenten/${name}/agent.json: agent_id fehlt`); process.exit(1); }
+// Bestehender Agent: senden würde den dort gebauten Prompt überschreiben, holen den (privaten) Live-Prompt ins
+// öffentliche Repo schreiben, vergleich ist sinnlos. Im Override-Modus kommt der Outbound-Prompt pro Anruf (anruf.mjs).
+if (fremderAgent(meta)) { sperreBeiFremdemAgent(meta, `agent.mjs ${befehl} ${name}`); process.exit(1); }
 
 const lokal = () => ({
   prompt: fuerAgent(name, readFileSync(join(ordner, 'prompt.md'), 'utf8').replace(/\r\n/g, '\n').trim(), meta),
